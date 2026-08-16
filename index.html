@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trim Image — Trim images &amp; remove backgrounds in your browser</title>
+  <meta name="description" content="Free online tools to trim empty space around images (like Photoshop's Trim) and remove the background from portraits with AI. 100% private — everything runs in your browser." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✂️</text></svg>" />
+</head>
+<body data-tab="trim">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">✂️</span>
+      <span class="brand-name">TrimImage</span>
+    </div>
+    <a class="ghlink" href="https://github.com" target="_blank" rel="noopener">100% private · runs in your browser</a>
+  </header>
+
+  <main>
+    <!-- Tabs -->
+    <nav class="tabs" role="tablist" aria-label="Tools">
+      <button class="tab active" role="tab" data-tab="trim" type="button" aria-selected="true">✂️ Trim image</button>
+      <button class="tab" role="tab" data-tab="bg" type="button" aria-selected="false">🪄 Remove background</button>
+    </nav>
+
+    <!-- ===================== TAB: TRIM ===================== -->
+    <section class="tab-panel" data-panel="trim" role="tabpanel">
+      <!-- Drop / upload zone -->
+      <section id="dropzone" class="dropzone" tabindex="0">
+        <div class="drop-inner">
+          <div class="drop-icon">⬆️</div>
+          <h1>Trim Image</h1>
+          <p class="subtitle">Remove empty space around an image — like Photoshop's <em>Image → Trim</em>.</p>
+          <button id="pickBtn" class="btn btn-primary" type="button">Choose image</button>
+          <p class="hint">or drag &amp; drop · paste from clipboard (Ctrl/⌘+V)</p>
+          <p class="formats">PNG · JPG · WEBP · GIF · BMP</p>
+        </div>
+        <input id="fileInput" type="file" accept="image/*" hidden />
+      </section>
+
+      <!-- Editor -->
+      <section id="editor" class="editor hidden">
+        <div class="canvas-wrap">
+          <div class="canvas-toolbar">
+            <button id="resetBtn" class="btn btn-ghost" type="button">↻ New image</button>
+            <div class="dims" id="dimsLabel"></div>
+          </div>
+          <div class="stage" id="stage">
+            <canvas id="canvas"></canvas>
+          </div>
+          <div class="legend">
+            <span class="swatch detected"></span> detected background
+            <span class="swatch keep"></span> kept region
+          </div>
+        </div>
+
+        <aside class="controls">
+          <h2>Trim settings</h2>
+
+          <div class="field">
+            <label>Background to trim</label>
+            <div class="seg" id="bgMode">
+              <button data-mode="auto" class="active" type="button">Auto</button>
+              <button data-mode="transparent" type="button">Transparent</button>
+              <button data-mode="custom" type="button">Color</button>
+            </div>
+            <div class="row custom-color hidden" id="customColorRow">
+              <input type="color" id="bgColor" value="#ffffff" />
+              <button id="pickFromImage" class="btn btn-ghost btn-sm" type="button">Pick from image</button>
+              <span class="muted" id="pickHint"></span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="tolerance">
+              Tolerance <span class="val" id="tolVal">10</span>
+            </label>
+            <input type="range" id="tolerance" min="0" max="100" value="10" />
+            <p class="muted">How different a pixel must be from the background to count as content. Raise it for noisy/JPEG edges.</p>
+          </div>
+
+          <div class="field">
+            <label for="padding">
+              Padding <span class="val" id="padVal">0</span> px
+            </label>
+            <input type="range" id="padding" min="0" max="200" value="0" />
+            <p class="muted">Keep a margin of background around the trimmed result.</p>
+          </div>
+
+          <div class="result-box" id="resultBox">
+            <div class="result-line"><span>Original</span><b id="origDims">—</b></div>
+            <div class="result-line"><span>Trimmed</span><b id="newDims">—</b></div>
+            <div class="result-line"><span>Removed</span><b id="savedPct">—</b></div>
+          </div>
+
+          <div class="field">
+            <label for="format">Download format</label>
+            <select id="format">
+              <option value="image/png">PNG (keeps transparency)</option>
+              <option value="image/jpeg">JPG</option>
+              <option value="image/webp">WEBP</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button id="downloadBtn" class="btn btn-primary btn-block" type="button">⬇ Download trimmed image</button>
+            <button id="copyBtn" class="btn btn-ghost btn-block" type="button">Copy to clipboard</button>
+          </div>
+          <p class="muted center" id="warnEmpty"></p>
+        </aside>
+      </section>
+    </section>
+
+    <!-- ===================== TAB: REMOVE BACKGROUND ===================== -->
+    <section class="tab-panel hidden" data-panel="bg" role="tabpanel">
+      <!-- Drop / upload zone -->
+      <section id="bgDropzone" class="dropzone" tabindex="0">
+        <div class="drop-inner">
+          <div class="drop-icon">🪄</div>
+          <h1>Remove Background</h1>
+          <p class="subtitle">Cut a person out of a portrait with AI — keep it <em>transparent</em> or drop in a <em>solid color</em>.</p>
+          <button id="bgPickBtn" class="btn btn-primary" type="button">Choose portrait</button>
+          <p class="hint">or drag &amp; drop · paste from clipboard (Ctrl/⌘+V)</p>
+          <p class="formats">PNG · JPG · WEBP · works best on people &amp; portraits</p>
+          <p class="privacy-note">Your photo never leaves this device. The AI model (≈ 44–176 MB depending on quality) is downloaded once from a CDN and cached by your browser.</p>
+        </div>
+        <input id="bgFileInput" type="file" accept="image/*" hidden />
+      </section>
+
+      <!-- Editor -->
+      <section id="bgEditor" class="editor hidden">
+        <div class="canvas-wrap">
+          <div class="canvas-toolbar">
+            <div class="toolbar-group">
+              <button id="bgResetBtn" class="btn btn-ghost" type="button">↻ New image</button>
+              <button id="bgCompareBtn" class="btn btn-ghost" type="button" title="Press and hold to see the original">👁 Hold to compare</button>
+            </div>
+            <div class="dims" id="bgDimsLabel"></div>
+          </div>
+          <div class="stage" id="bgStage">
+            <canvas id="bgCanvas"></canvas>
+            <div class="progress-overlay hidden" id="bgProgress" aria-live="polite">
+              <div class="progress-card">
+                <div class="spinner" aria-hidden="true"></div>
+                <div class="progress-text" id="bgProgressText">Loading…</div>
+                <div class="progress-bar" id="bgProgressBar"><div class="progress-fill" id="bgProgressFill"></div></div>
+                <div class="progress-sub" id="bgProgressSub"></div>
+              </div>
+            </div>
+          </div>
+          <div class="status-line">
+            <span class="muted" id="bgStatus"></span>
+          </div>
+        </div>
+
+        <aside class="controls">
+          <h2>Background</h2>
+
+          <div class="field">
+            <label>New background</label>
+            <div class="seg" id="bgOutMode">
+              <button data-mode="transparent" class="active" type="button">Transparent</button>
+              <button data-mode="color" type="button">Solid color</button>
+            </div>
+            <div class="color-picker" id="bgColorRow">
+              <div class="swatches" id="bgSwatches" aria-label="Preset colors">
+                <button class="swatch-btn active" data-color="#ffffff" style="--c:#ffffff" title="White" type="button"></button>
+                <button class="swatch-btn" data-color="#e5e7eb" style="--c:#e5e7eb" title="Light grey" type="button"></button>
+                <button class="swatch-btn" data-color="#9ca3af" style="--c:#9ca3af" title="Grey" type="button"></button>
+                <button class="swatch-btn" data-color="#000000" style="--c:#000000" title="Black" type="button"></button>
+                <button class="swatch-btn" data-color="#438edb" style="--c:#438edb" title="Passport blue" type="button"></button>
+                <button class="swatch-btn" data-color="#dbeafe" style="--c:#dbeafe" title="Light blue" type="button"></button>
+                <button class="swatch-btn" data-color="#e53935" style="--c:#e53935" title="Red" type="button"></button>
+                <button class="swatch-btn" data-color="#22c55e" style="--c:#22c55e" title="Green" type="button"></button>
+                <button class="swatch-btn" data-color="#f59e0b" style="--c:#f59e0b" title="Amber" type="button"></button>
+                <button class="swatch-btn" data-color="#fde68a" style="--c:#fde68a" title="Cream" type="button"></button>
+              </div>
+              <div class="row">
+                <input type="color" id="bgFillColor" value="#ffffff" aria-label="Custom background color" />
+                <span class="hex" id="bgFillHex">#FFFFFF</span>
+                <span class="muted" style="margin:0">Custom color</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="bgShrink">
+              Shrink edge <span class="val" id="bgShrinkVal">0</span> px
+            </label>
+            <input type="range" id="bgShrink" min="0" max="10" value="0" />
+            <p class="muted">Pull the cutout inwards to remove leftover fringe from the old background.</p>
+          </div>
+
+          <div class="field">
+            <label for="bgFeather">
+              Feather edge <span class="val" id="bgFeatherVal">1</span> px
+            </label>
+            <input type="range" id="bgFeather" min="0" max="20" value="1" />
+            <p class="muted">Soften the edge so the subject blends into the new background.</p>
+          </div>
+
+          <div class="field">
+            <label for="bgModel">AI quality</label>
+            <select id="bgModel">
+              <option value="small">Fast — 44 MB model</option>
+              <option value="medium" selected>Balanced — 88 MB model</option>
+              <option value="large">Best — 176 MB model</option>
+            </select>
+            <p class="muted">Higher quality = larger one-time download and slower processing.</p>
+          </div>
+
+          <div class="field">
+            <label for="bgFormat">Download format</label>
+            <select id="bgFormat">
+              <option value="image/png">PNG (keeps transparency)</option>
+              <option value="image/jpeg">JPG</option>
+              <option value="image/webp">WEBP</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button id="bgDownloadBtn" class="btn btn-primary btn-block" type="button" disabled>⬇ Download image</button>
+            <button id="bgCopyBtn" class="btn btn-ghost btn-block" type="button" disabled>Copy to clipboard</button>
+          </div>
+          <p class="error center hidden" id="bgError"></p>
+          <div class="actions hidden" id="bgRetryRow">
+            <button id="bgRetryBtn" class="btn btn-ghost btn-block" type="button">↻ Try again</button>
+          </div>
+        </aside>
+      </section>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>No uploads. No tracking. Your images never leave this device.</p>
+  </footer>
+
+  <script src="app.js"></script>
+  <script src="bgremove.js"></script>
+</body>
+</html>
