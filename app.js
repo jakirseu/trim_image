@@ -16,11 +16,13 @@
     });
     tabPanels.forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== name));
     try {
-      history.replaceState(null, '', name === 'trim' ? location.pathname + location.search : '#remove-background');
+      const hash = { bg: '#remove-background', erase: '#erase-color' }[name] || '';
+      history.replaceState(null, '', hash || location.pathname + location.search);
     } catch { /* file:// may refuse; ignore */ }
   }
   tabButtons.forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
-  if (location.hash === '#remove-background') setTab('bg');
+  const fromHash = { '#remove-background': 'bg', '#erase-color': 'erase' }[location.hash];
+  if (fromHash) setTab(fromHash);
   const trimActive = () => document.body.dataset.tab === 'trim';
 
 

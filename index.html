@@ -22,6 +22,7 @@
     <nav class="tabs" role="tablist" aria-label="Tools">
       <button class="tab active" role="tab" data-tab="trim" type="button" aria-selected="true">✂️ Trim image</button>
       <button class="tab" role="tab" data-tab="bg" type="button" aria-selected="false">🪄 Remove background</button>
+      <button class="tab" role="tab" data-tab="erase" type="button" aria-selected="false">🧽 Erase color</button>
     </nav>
 
     <!-- ===================== TAB: TRIM ===================== -->
@@ -230,6 +231,138 @@
         </aside>
       </section>
     </section>
+
+    <!-- ===================== TAB: ERASE COLOR ===================== -->
+    <section class="tab-panel hidden" data-panel="erase" role="tabpanel">
+      <!-- Drop / upload zone -->
+      <section id="erDropzone" class="dropzone" tabindex="0">
+        <div class="drop-inner">
+          <div class="drop-icon">🧽</div>
+          <h1>Erase Color</h1>
+          <p class="subtitle">Click a color to make it <em>transparent</em> — or wipe pixels away with a <em>round eraser</em>.</p>
+          <button id="erPickBtn" class="btn btn-primary" type="button">Choose image</button>
+          <p class="hint">or drag &amp; drop · paste from clipboard (Ctrl/⌘+V)</p>
+          <p class="formats">PNG · JPG · WEBP · GIF · BMP</p>
+        </div>
+        <input id="erFileInput" type="file" accept="image/*" hidden />
+      </section>
+
+      <!-- Editor -->
+      <section id="erEditor" class="editor hidden">
+        <div class="canvas-wrap">
+          <div class="canvas-toolbar">
+            <div class="toolbar-group">
+              <button id="erResetBtn" class="btn btn-ghost" type="button">↻ New image</button>
+              <button id="erUndoBtn" class="btn btn-ghost" type="button" title="⌘/Ctrl+Z" disabled>↶ Undo</button>
+              <button id="erRedoBtn" class="btn btn-ghost" type="button" title="⌘/Ctrl+⇧+Z" disabled>↷ Redo</button>
+            </div>
+            <div class="dims" id="erDimsLabel"></div>
+          </div>
+          <div class="stage" id="erStage">
+            <canvas id="erCanvas"></canvas>
+            <div class="brush-cursor hidden" id="erCursor"></div>
+          </div>
+          <div class="legend">
+            <span>Preview on</span>
+            <div class="seg seg-sm" id="erPreviewBg">
+              <button data-bg="checker" class="active" type="button">Checker</button>
+              <button data-bg="white" type="button">White</button>
+              <button data-bg="black" type="button">Black</button>
+            </div>
+            <span class="muted" id="erHint"></span>
+          </div>
+        </div>
+
+        <aside class="controls">
+          <h2>Eraser</h2>
+
+          <div class="field">
+            <label>Tool</label>
+            <div class="seg" id="erTool">
+              <button data-tool="color" class="active" type="button">🎯 Color</button>
+              <button data-tool="brush" type="button">⭕ Brush</button>
+            </div>
+          </div>
+
+          <!-- Color eraser -->
+          <div id="erColorPanel">
+            <div class="field">
+              <label>Color to erase</label>
+              <div class="row">
+                <input type="color" id="erColorInput" value="#ffffff" aria-label="Color to erase" />
+                <span class="hex" id="erColorHex">#FFFFFF</span>
+                <button id="erApplyBtn" class="btn btn-ghost btn-sm" type="button">Erase this color</button>
+              </div>
+              <p class="muted">Click anywhere on the image to sample that color and erase it right away.</p>
+            </div>
+
+            <div class="field">
+              <label for="erTol">Intensity <span class="val" id="erTolVal">20</span></label>
+              <input type="range" id="erTol" min="0" max="100" value="20" />
+              <p class="muted">How wide a range of similar colors counts as “the same color”.</p>
+            </div>
+
+            <div class="field">
+              <label for="erSoft">Edge softness <span class="val" id="erSoftVal">30</span></label>
+              <input type="range" id="erSoft" min="0" max="100" value="30" />
+              <p class="muted">Fade out near-matching pixels instead of cutting them off hard.</p>
+            </div>
+
+            <div class="field">
+              <label>Where</label>
+              <div class="seg" id="erScope">
+                <button data-scope="global" class="active" type="button">Whole image</button>
+                <button data-scope="contiguous" type="button">Connected only</button>
+              </div>
+              <p class="muted">“Connected only” erases just the touching area you clicked — the same color elsewhere is kept.</p>
+            </div>
+          </div>
+
+          <!-- Brush eraser -->
+          <div id="erBrushPanel" class="hidden">
+            <div class="field">
+              <label>Brush mode</label>
+              <div class="seg" id="erBrushMode">
+                <button data-mode="erase" class="active" type="button">Erase</button>
+                <button data-mode="restore" type="button">Restore</button>
+              </div>
+              <p class="muted">Restore paints erased pixels back in — handy for fixing an over-eager color erase.</p>
+            </div>
+
+            <div class="field">
+              <label for="erSize">Brush size <span class="val" id="erSizeVal">60</span> px</label>
+              <input type="range" id="erSize" min="2" max="400" value="60" />
+              <p class="muted">Drag on the image to paint. <b>[</b> and <b>]</b> resize the brush.</p>
+            </div>
+
+            <div class="field">
+              <label for="erHard">Hardness <span class="val" id="erHardVal">70</span></label>
+              <input type="range" id="erHard" min="0" max="100" value="70" />
+              <p class="muted">Lower = softer, feathered edge.</p>
+            </div>
+          </div>
+
+          <div class="result-box">
+            <div class="result-line"><span>Size</span><b id="erSizeInfo">—</b></div>
+            <div class="result-line"><span>Erased</span><b id="erErasedPct">—</b></div>
+          </div>
+
+          <div class="field">
+            <label for="erFormat">Download format</label>
+            <select id="erFormat">
+              <option value="image/png">PNG (keeps transparency)</option>
+              <option value="image/webp">WEBP (keeps transparency)</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button id="erDownloadBtn" class="btn btn-primary btn-block" type="button">⬇ Download image</button>
+            <button id="erCopyBtn" class="btn btn-ghost btn-block" type="button">Copy to clipboard</button>
+            <button id="erRestoreAllBtn" class="btn btn-ghost btn-block" type="button">Restore everything</button>
+          </div>
+        </aside>
+      </section>
+    </section>
   </main>
 
   <footer class="foot">
@@ -238,5 +371,6 @@
 
   <script src="app.js"></script>
   <script src="bgremove.js"></script>
+  <script src="eraser.js"></script>
 </body>
 </html>
