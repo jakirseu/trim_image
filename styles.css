@@ -548,3 +548,9 @@ select:disabled { opacity: .6; }
   line-height: 1.5;
 }
 .setup-note code { border-color: var(--detected); color: var(--detected); }
+
+/* Buy Me a Coffee button in the footer */
+.foot-bmc { margin-top: 16px; }
+.foot-bmc a { display: inline-block; line-height: 0; border-radius: 10px; transition: transform .12s, opacity .12s; }
+.foot-bmc a:hover { transform: translateY(-1px); opacity: .9; }
+.foot-bmc img { max-width: 100%; vertical-align: middle; }
