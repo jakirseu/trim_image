@@ -46,6 +46,7 @@
     <!-- Tabs -->
     <nav class="tabs" role="tablist" aria-label="Tools">
       <button class="tab active" role="tab" data-tab="trim" type="button" aria-selected="true">✂️ Trim image</button>
+      <button class="tab" role="tab" data-tab="crop" type="button" aria-selected="false">⛶ Crop</button>
       <button class="tab" role="tab" data-tab="bg" type="button" aria-selected="false">🪄 Remove background</button>
       <button class="tab" role="tab" data-tab="erase" type="button" aria-selected="false">🧽 Erase color</button>
     </nav>
@@ -388,6 +389,115 @@
         </aside>
       </section>
     </section>
+
+    <!-- ===================== TAB: CROP ===================== -->
+    <section class="tab-panel hidden" data-panel="crop" role="tabpanel">
+      <!-- Drop / upload zone -->
+      <section id="crDropzone" class="dropzone" tabindex="0">
+        <div class="drop-inner">
+          <div class="drop-icon">⛶</div>
+          <h1>Crop Image</h1>
+          <p class="subtitle">Drag a selection, snap it to an <em>aspect ratio</em>, and cut it out — pixel exact.</p>
+          <button id="crPickBtn" class="btn btn-primary" type="button">Choose image</button>
+          <p class="hint">or drag &amp; drop · paste from clipboard (Ctrl/⌘+V)</p>
+          <p class="formats">PNG · JPG · WEBP · GIF · BMP</p>
+        </div>
+        <input id="crFileInput" type="file" accept="image/*" hidden />
+      </section>
+
+      <!-- Editor -->
+      <section id="crEditor" class="editor hidden">
+        <div class="canvas-wrap">
+          <div class="canvas-toolbar">
+            <div class="toolbar-group">
+              <button id="crResetBtn" class="btn btn-ghost" type="button">↻ New image</button>
+              <button id="crRotL" class="btn btn-ghost btn-sm icon-btn" type="button" title="Rotate left 90°">↺</button>
+              <button id="crRotR" class="btn btn-ghost btn-sm icon-btn" type="button" title="Rotate right 90°">↻</button>
+              <button id="crFlipH" class="btn btn-ghost btn-sm icon-btn" type="button" title="Flip horizontally">⇄</button>
+              <button id="crFlipV" class="btn btn-ghost btn-sm icon-btn" type="button" title="Flip vertically">⇅</button>
+            </div>
+            <div class="dims" id="crDimsLabel"></div>
+          </div>
+          <div class="stage" id="crStage">
+            <div class="crop-wrap" id="crWrap">
+              <canvas id="crCanvas"></canvas>
+              <div class="crop-sel" id="crSel">
+                <div class="crop-grid"></div>
+                <span class="ch ch-nw" data-h="nw"></span>
+                <span class="ch ch-n"  data-h="n"></span>
+                <span class="ch ch-ne" data-h="ne"></span>
+                <span class="ch ch-e"  data-h="e"></span>
+                <span class="ch ch-se" data-h="se"></span>
+                <span class="ch ch-s"  data-h="s"></span>
+                <span class="ch ch-sw" data-h="sw"></span>
+                <span class="ch ch-w"  data-h="w"></span>
+              </div>
+            </div>
+          </div>
+          <div class="legend">
+            <span class="muted" id="crHint">Drag on the image to draw a selection · arrow keys nudge · Esc resets</span>
+          </div>
+        </div>
+
+        <aside class="controls">
+          <h2>Crop settings</h2>
+
+          <div class="field">
+            <label>Aspect ratio</label>
+            <div class="ratio-grid" id="crRatios">
+              <button data-r="free" class="active" type="button">Free</button>
+              <button data-r="orig" type="button">Original</button>
+              <button data-r="1:1" type="button">1:1</button>
+              <button data-r="4:3" type="button">4:3</button>
+              <button data-r="3:2" type="button">3:2</button>
+              <button data-r="16:9" type="button">16:9</button>
+              <button data-r="3:4" type="button">3:4</button>
+              <button data-r="2:3" type="button">2:3</button>
+              <button data-r="9:16" type="button">9:16</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Selection size</label>
+            <div class="num-row">
+              <label class="num"><span>W</span><input type="number" id="crW" min="1" step="1" /></label>
+              <label class="num"><span>H</span><input type="number" id="crH" min="1" step="1" /></label>
+            </div>
+            <div class="num-row">
+              <label class="num"><span>X</span><input type="number" id="crX" min="0" step="1" /></label>
+              <label class="num"><span>Y</span><input type="number" id="crY" min="0" step="1" /></label>
+            </div>
+          </div>
+
+          <div class="result-box">
+            <div class="result-line"><span>Image</span><b id="crSrcDims">—</b></div>
+            <div class="result-line"><span>Crop</span><b id="crOutDims">—</b></div>
+            <div class="result-line"><span>Kept</span><b id="crKept">—</b></div>
+          </div>
+
+          <div class="field">
+            <div class="seg" id="crQuick">
+              <button data-q="all" type="button">Select all</button>
+              <button data-q="center" type="button">Center 80%</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="crFormat">Download format</label>
+            <select id="crFormat">
+              <option value="image/png">PNG (keeps transparency)</option>
+              <option value="image/jpeg">JPG</option>
+              <option value="image/webp">WEBP</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button id="crDownloadBtn" class="btn btn-primary btn-block" type="button">⬇ Download cropped image</button>
+            <button id="crCopyBtn" class="btn btn-ghost btn-block" type="button">Copy to clipboard</button>
+          </div>
+        </aside>
+      </section>
+    </section>
   </main>
 
   <footer class="foot">
@@ -413,5 +523,6 @@
   <script src="app.js"></script>
   <script src="bgremove.js"></script>
   <script src="eraser.js"></script>
+  <script src="crop.js"></script>
 </body>
 </html>

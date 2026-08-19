@@ -1,7 +1,8 @@
 # ✂️ TrimImage
 
-Three image tools that run **entirely in your browser** — trim empty space, remove a portrait's
-background with AI, or erase a colour into transparency. No uploads, no accounts, no server.
+Four image tools that run **entirely in your browser** — trim empty space, crop to any aspect ratio,
+remove a portrait's background with AI, or erase a colour into transparency. No uploads, no accounts,
+no server.
 
 **Live at [imagetrimmer.com](https://imagetrimmer.com)**
 
@@ -23,6 +24,16 @@ Crops away the uniform border around an image — the equivalent of Photoshop's 
 - **Tolerance** slider for noisy or JPEG-compressed edges
 - **Padding** to keep a margin around the result
 - Live preview of the crop, with original/trimmed/removed stats
+- Export as PNG, JPG or WEBP, or copy to clipboard
+
+### ⛶ Crop
+Draw a selection and cut it out — pixel exact.
+
+- Drag to draw, drag inside to move, **8 handles** to resize — everything clamped to the image
+- **Aspect ratio presets** — Free, Original, 1:1, 4:3, 3:2, 16:9, 3:4, 2:3, 9:16 — held through every resize
+- **Numeric W/H/X/Y inputs** for exact values, plus *Select all* and *Center 80%*
+- **Rotate** 90° either way and **flip** horizontally or vertically
+- Rule-of-thirds guides, arrow-key nudging (Shift for 10 px), Esc to reset
 - Export as PNG, JPG or WEBP, or copy to clipboard
 
 ### 🪄 Remove background
@@ -135,6 +146,7 @@ Any static host works — copy the files as they are. Two optional improvements:
 |---|---|
 | [`index.html`](index.html) | App shell, tab bar, and the three tool panels |
 | [`app.js`](app.js) | Tab switching + the Trim tool |
+| [`crop.js`](crop.js) | Crop selection, aspect ratios, rotate/flip |
 | [`bgremove.js`](bgremove.js) | AI background removal (model loading, mask refinement, compositing) |
 | [`eraser.js`](eraser.js) | Colour eraser, flood fill, brush, undo/redo |
 | [`styles.css`](styles.css) | All styling |
@@ -150,8 +162,8 @@ when the browser exposes it, and falls back to WebAssembly automatically. Clipbo
 
 ## Credits
 
-Full attribution lives on the [credits page](credits.html). The **Trim** and **Erase colour** tools use
-no third-party code; **Remove background** builds on:
+Full attribution lives on the [credits page](credits.html). The **Trim**, **Crop** and **Erase colour**
+tools use no third-party code; **Remove background** builds on:
 
 | Component | Author | License |
 |---|---|---|
