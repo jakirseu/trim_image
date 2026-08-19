@@ -549,8 +549,28 @@ select:disabled { opacity: .6; }
 }
 .setup-note code { border-color: var(--detected); color: var(--detected); }
 
-/* Buy Me a Coffee button in the footer */
-.foot-bmc { margin-top: 16px; }
-.foot-bmc a { display: inline-block; line-height: 0; border-radius: 10px; transition: transform .12s, opacity .12s; }
-.foot-bmc a:hover { transform: translateY(-1px); opacity: .9; }
-.foot-bmc img { max-width: 100%; vertical-align: middle; }
+/* Buy Me a Coffee button in the footer (self-hosted — no third-party requests) */
+.foot-bmc { margin-top: 18px; }
+.bmc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: #ffdd00;
+  color: #0d0c22;
+  border-radius: 12px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  transition: background .14s, transform .12s, box-shadow .14s;
+}
+.bmc-btn:hover {
+  background: #ffe633;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255,221,0,.20);
+}
+.bmc-btn:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+.bmc-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.bmc-btn svg { width: 20px; height: 20px; flex: none; }
