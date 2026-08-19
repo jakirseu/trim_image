@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Credits &amp; Licenses — TrimImage</title>
+  <meta name="description" content="Open-source software, models and licenses used by TrimImage." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✂️</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="logo">✂️</span>
+      <span class="brand-name">TrimImage</span>
+    </a>
+    <a class="ghlink" href="index.html">← Back to the app</a>
+  </header>
+
+  <main class="page">
+    <h1>Credits &amp; Licenses</h1>
+    <p class="lead">
+      TrimImage runs entirely in your browser — no image is ever uploaded. The tools below
+      are built with open-source software, and this page credits every third-party
+      component, its authors and its license.
+    </p>
+
+    <!-- What uses what -->
+    <section class="page-section">
+      <h2>What each tool uses</h2>
+      <div class="credit-grid">
+        <div class="credit-card">
+          <h3>✂️ Trim image</h3>
+          <p class="muted">No third-party code. Plain HTML canvas pixel analysis written for this app.</p>
+        </div>
+        <div class="credit-card">
+          <h3>🧽 Erase color</h3>
+          <p class="muted">No third-party code. Color-distance matching, flood fill and brush compositing written for this app.</p>
+        </div>
+        <div class="credit-card">
+          <h3>🪄 Remove background</h3>
+          <p class="muted">Uses the AI segmentation stack credited below — the model runs locally on your device.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Third-party components -->
+    <section class="page-section">
+      <h2>Open-source components</h2>
+      <p class="muted">Used by the <b>Remove background</b> tool.</p>
+
+      <div class="table-scroll">
+        <table class="lic-table">
+          <thead>
+            <tr><th>Component</th><th>Author</th><th>Purpose</th><th>License</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <a href="https://github.com/imgly/background-removal-js" target="_blank" rel="noopener noreferrer">@imgly/background-removal</a>
+                <span class="ver">v1.7.0</span>
+              </td>
+              <td>IMG.LY GmbH</td>
+              <td>Runs the segmentation model in the browser</td>
+              <td><span class="lic-tag lic-copyleft">AGPL-3.0</span></td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://github.com/xuebinqin/DIS" target="_blank" rel="noopener noreferrer">IS-Net (DIS)</a>
+                <span class="ver">segmentation model</span>
+              </td>
+              <td>Xuebin Qin, Hang Dai, Xiaobin Hu, Deng-Ping Fan, Ling Shao, Luc Van Gool</td>
+              <td>Neural network that separates subject from background</td>
+              <td><span class="lic-tag">MIT</span> <span class="muted-inline">(upstream code Apache-2.0)</span></td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://github.com/microsoft/onnxruntime" target="_blank" rel="noopener noreferrer">ONNX Runtime Web</a>
+                <span class="ver">v1.21.0</span>
+              </td>
+              <td>Microsoft</td>
+              <td>Executes the model on WebGPU / WebAssembly</td>
+              <td><span class="lic-tag">MIT</span></td>
+            </tr>
+            <tr>
+              <td><a href="https://github.com/scijs/ndarray" target="_blank" rel="noopener noreferrer">ndarray</a></td>
+              <td>Mikola Lysenko</td>
+              <td>Tensor views over pixel buffers</td>
+              <td><span class="lic-tag">MIT</span></td>
+            </tr>
+            <tr>
+              <td><a href="https://lodash.com/" target="_blank" rel="noopener noreferrer">lodash-es</a></td>
+              <td>OpenJS Foundation &amp; contributors</td>
+              <td>Utility helpers</td>
+              <td><span class="lic-tag">MIT</span></td>
+            </tr>
+            <tr>
+              <td><a href="https://github.com/colinhacks/zod" target="_blank" rel="noopener noreferrer">zod</a></td>
+              <td>Colin McDonnell</td>
+              <td>Configuration validation</td>
+              <td><span class="lic-tag">MIT</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="muted">
+        License texts:
+        <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">AGPL-3.0</a> ·
+        <a href="https://opensource.org/license/mit" target="_blank" rel="noopener noreferrer">MIT</a> ·
+        <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer">Apache-2.0</a>
+      </p>
+    </section>
+
+    <!-- Delivery -->
+    <section class="page-section">
+      <h2>Model &amp; asset delivery</h2>
+      <p class="muted">
+        The background-removal library is loaded from <a href="https://www.jsdelivr.com/" target="_blank" rel="noopener noreferrer">jsDelivr</a>,
+        and the neural-network weights plus the WebAssembly runtime are downloaded from
+        IMG.LY's asset CDN (<code>staticimgly.com</code>) the first time you use that tool.
+        They are then cached by your browser. Your photo is never part of that traffic —
+        only the model travels, and it travels <em>to</em> you.
+      </p>
+    </section>
+
+    <!-- Citation -->
+    <section class="page-section">
+      <h2>Research citation</h2>
+      <p class="muted">The segmentation model comes from this paper. If you use it in academic work, please cite:</p>
+      <pre class="cite">@InProceedings{qin2022,
+      author={Xuebin Qin and Hang Dai and Xiaobin Hu and Deng-Ping Fan and Ling Shao and Luc Van Gool},
+      title={Highly Accurate Dichotomous Image Segmentation},
+      booktitle={ECCV},
+      year={2022}
+}</pre>
+    </section>
+
+    <!-- Source code -->
+    <section class="page-section" id="source">
+      <h2>Source code</h2>
+      <p class="muted">
+        The <b>Remove background</b> tool builds on <code>@imgly/background-removal</code>, which is licensed
+        under the <b>AGPL-3.0</b>. That license asks anyone running the software over a network to
+        offer its users the complete corresponding source. TrimImage's source is available here:
+      </p>
+      <!-- Set this href to your repository URL, e.g. https://github.com/you/trimimage
+           The setup notice below disappears on its own once the href is a real URL. -->
+      <p><a class="btn btn-ghost btn-sm inline-btn" id="sourceLink" href="#">Get the source code</a></p>
+      <p class="setup-note hidden" id="sourceTodo">
+        <b>Setup needed:</b> point the link above at your repository — edit
+        <code>href</code> on <code>#sourceLink</code> in <code>credits.html</code>.
+        This notice removes itself once you do.
+      </p>
+      <p class="muted">
+        IMG.LY also offers commercial licensing for projects that cannot publish their source —
+        <a href="mailto:support@img.ly?subject=Background-Removal%20License">support@img.ly</a>.
+        This page is attribution, not legal advice.
+      </p>
+    </section>
+
+    <!-- Privacy -->
+    <section class="page-section">
+      <h2>Privacy</h2>
+      <p class="muted">
+        Every tool on this site processes images locally with the HTML canvas API and, for background
+        removal, a model running on your own device. No image data is uploaded, stored or tracked.
+      </p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>No uploads. No tracking. Your images never leave this device.</p>
+    <p class="foot-links"><a href="index.html">← Back to the app</a></p>
+  </footer>
+
+  <script>
+    // Flag an unconfigured source link so it can't ship unnoticed.
+    (() => {
+      const link = document.getElementById('sourceLink');
+      const href = link.getAttribute('href') || '';
+      if (!href || href === '#') document.getElementById('sourceTodo').classList.remove('hidden');
+    })();
+  </script>
+</body>
+</html>
