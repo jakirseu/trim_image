@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trim Image — Trim, crop, enhance &amp; upscale images in your browser</title>
-  <meta name="description" content="Trim empty space, crop, auto-enhance, upscale with AI, remove portrait backgrounds, and erase colors into transparency. Free, no accounts, no tracking." />
+  <meta name="description" content="Trim, crop, enhance, upscale, remove backgrounds, erase colors, convert formats and compress images — free, in your browser, no accounts." />
 
   <!-- Canonical + social sharing -->
   <link rel="canonical" href="https://www.imagetrimmer.com/" />
@@ -15,7 +15,7 @@
   <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="https://www.imagetrimmer.com/" />
   <meta property="og:title" content="TrimImage — Trim, crop, enhance, upscale &amp; remove backgrounds in your browser" />
-  <meta property="og:description" content="Trim empty space, crop, auto-enhance, upscale with AI, remove portrait backgrounds, and erase colors into transparency. Free, no accounts, no tracking." />
+  <meta property="og:description" content="Trim, crop, enhance, upscale, remove backgrounds, erase colors, convert formats and compress images — free, in your browser, no accounts." />
   <meta property="og:image" content="https://www.imagetrimmer.com/og-image.png?v=1" />
   <meta property="og:image:secure_url" content="https://www.imagetrimmer.com/og-image.png?v=1" />
   <meta property="og:image:type" content="image/png" />
@@ -26,7 +26,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://www.imagetrimmer.com/" />
   <meta name="twitter:title" content="TrimImage — Trim, crop, enhance, upscale &amp; remove backgrounds in your browser" />
-  <meta name="twitter:description" content="Trim empty space, crop, auto-enhance, upscale with AI, remove portrait backgrounds, and erase colors into transparency. Free, no accounts, no tracking." />
+  <meta name="twitter:description" content="Trim, crop, enhance, upscale, remove backgrounds, erase colors, convert formats and compress images — free, in your browser, no accounts." />
   <meta name="twitter:image" content="https://www.imagetrimmer.com/og-image.png?v=1" />
   <meta name="twitter:image:alt" content="TrimImage — trim, remove background, and erase color tools that run 100% in your browser" />
 
@@ -51,6 +51,8 @@
       <button class="tab" role="tab" data-tab="upscale" type="button" aria-selected="false">🔍 Upscale</button>
       <button class="tab" role="tab" data-tab="bg" type="button" aria-selected="false">🪄 Remove background</button>
       <button class="tab" role="tab" data-tab="erase" type="button" aria-selected="false">🧽 Erase color</button>
+      <button class="tab" role="tab" data-tab="convert" type="button" aria-selected="false">🔄 Convert</button>
+      <button class="tab" role="tab" data-tab="compress" type="button" aria-selected="false">🗜️ Compress</button>
     </nav>
 
     <!-- ===================== TAB: TRIM ===================== -->
@@ -716,6 +718,147 @@
         </aside>
       </section>
     </section>
+
+    <!-- ===================== TAB: CONVERT ===================== -->
+    <section class="tab-panel hidden" data-panel="convert" role="tabpanel">
+      <section id="cvDropzone" class="dropzone" tabindex="0">
+        <div class="drop-inner">
+          <div class="drop-icon">🔄</div>
+          <h1>Convert Image</h1>
+          <p class="subtitle">Change format between <em>PNG, JPG and WEBP</em> — several images at once.</p>
+          <button id="cvPickBtn" class="btn btn-primary" type="button">Choose images</button>
+          <p class="hint">or drag &amp; drop · paste from clipboard (Ctrl/⌘+V)</p>
+          <p class="formats">PNG · JPG · WEBP · GIF · BMP · AVIF in</p>
+          <p class="privacy-note">Runs in your browser — nothing is uploaded. Re-encoding also strips EXIF metadata, including GPS location, from the result.</p>
+        </div>
+        <input id="cvFileInput" type="file" accept="image/*" multiple hidden />
+      </section>
+
+      <section id="cvEditor" class="editor hidden">
+        <div class="canvas-wrap">
+          <div class="canvas-toolbar">
+            <div class="toolbar-group">
+              <button id="cvResetBtn" class="btn btn-ghost" type="button">↻ Start over</button>
+              <button id="cvAddMore" class="btn btn-ghost btn-sm" type="button">+ Add images</button>
+            </div>
+            <div class="dims" id="cvSummary"></div>
+          </div>
+          <div class="file-list" id="cvList"></div>
+          <div class="legend"><span class="muted">Drop more images anywhere on this panel.</span></div>
+        </div>
+
+        <aside class="controls">
+          <h2>Convert to</h2>
+          <div class="field">
+            <label>Output format</label>
+            <div class="seg" id="cvFormat">
+              <button data-f="image/jpeg" class="active" type="button">JPG</button>
+              <button data-f="image/png" type="button">PNG</button>
+              <button data-f="image/webp" type="button">WEBP</button>
+              <button data-f="image/avif" type="button">AVIF</button>
+            </div>
+          </div>
+
+          <div class="field slider-field" id="cvQualityRow">
+            <label for="cvQuality">Quality <span class="val" id="cvQualityVal">85</span></label>
+            <input type="range" id="cvQuality" min="1" max="100" value="85" />
+            <p class="muted">Lower means a smaller file with more visible artefacts.</p>
+          </div>
+
+          <div class="field hidden" id="cvMatteRow">
+            <label for="cvMatte">Background for transparency</label>
+            <div class="row">
+              <input type="color" id="cvMatte" value="#ffffff" />
+              <span class="muted" style="margin:0">JPG has no transparency, so it needs a colour behind it.</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="cvDownloadAll" class="btn btn-primary btn-block" type="button" disabled>⬇ Download all</button>
+          </div>
+        </aside>
+      </section>
+    </section>
+
+    <!-- ===================== TAB: COMPRESS ===================== -->
+    <section class="tab-panel hidden" data-panel="compress" role="tabpanel">
+      <section id="cpDropzone" class="dropzone" tabindex="0">
+        <div class="drop-inner">
+          <div class="drop-icon">🗜️</div>
+          <h1>Compress Image</h1>
+          <p class="subtitle">Shrink the file size — with the <em>real</em> resulting size shown as you tune it.</p>
+          <button id="cpPickBtn" class="btn btn-primary" type="button">Choose image</button>
+          <p class="hint">or drag &amp; drop · paste from clipboard (Ctrl/⌘+V)</p>
+          <p class="formats">PNG · JPG · WEBP · GIF · BMP · AVIF in</p>
+          <p class="privacy-note">Runs in your browser — nothing is uploaded. Re-encoding also strips EXIF metadata, including GPS location, from the result.</p>
+        </div>
+        <input id="cpFileInput" type="file" accept="image/*" hidden />
+      </section>
+
+      <section id="cpEditor" class="editor hidden">
+        <div class="canvas-wrap">
+          <div class="canvas-toolbar">
+            <div class="toolbar-group">
+              <button id="cpResetBtn" class="btn btn-ghost" type="button">↻ New image</button>
+              <button id="cpCompareBtn" class="btn btn-ghost" type="button" title="Press and hold to see the original">👁 Hold to compare</button>
+            </div>
+            <div class="dims" id="cpDimsLabel"></div>
+          </div>
+          <div class="stage" id="cpStage">
+            <canvas id="cpCanvas"></canvas>
+          </div>
+          <div class="status-line"><span class="muted" id="cpStatus"></span></div>
+        </div>
+
+        <aside class="controls">
+          <h2>Compress</h2>
+
+          <div class="field">
+            <label>Output format</label>
+            <div class="seg" id="cpFormat">
+              <button data-f="keep" class="active" type="button">Keep</button>
+              <button data-f="image/jpeg" type="button">JPG</button>
+              <button data-f="image/webp" type="button">WEBP</button>
+              <button data-f="image/avif" type="button">AVIF</button>
+            </div>
+          </div>
+
+          <div class="field slider-field" id="cpQualityRow">
+            <label for="cpQuality">Quality <span class="val" id="cpQualityVal">80</span></label>
+            <input type="range" id="cpQuality" min="1" max="100" value="80" />
+          </div>
+
+          <div class="field slider-field">
+            <label for="cpScale">Size <span class="val" id="cpScaleVal">100</span>%</label>
+            <input type="range" id="cpScale" min="10" max="100" value="100" />
+            <p class="muted">Scaling down is often the biggest saving of all.</p>
+          </div>
+
+          <div class="field">
+            <label for="cpTarget">Fit to a size</label>
+            <div class="row">
+              <label class="num" style="flex:1"><input type="number" id="cpTarget" min="10" step="10" value="500" /><span>KB</span></label>
+              <button id="cpFitBtn" class="btn btn-ghost btn-sm" type="button">Fit</button>
+            </div>
+            <p class="muted">Searches for the highest quality that still fits under that size.</p>
+          </div>
+
+          <div class="result-box">
+            <div class="result-line"><span>Original</span><b id="cpOrigSize">—</b></div>
+            <div class="result-line"><span>Compressed</span><b id="cpNewSize">—</b></div>
+            <div class="result-line"><span>Change</span><b id="cpSaved">—</b></div>
+            <div class="result-line"><span>Dimensions</span><b id="cpOutDims">—</b></div>
+          </div>
+
+          <p class="muted" id="cpNote"></p>
+
+          <div class="actions">
+            <button id="cpDownloadBtn" class="btn btn-primary btn-block" type="button" disabled>⬇ Download compressed image</button>
+            <button id="cpCopyBtn" class="btn btn-ghost btn-block" type="button" disabled>Copy to clipboard</button>
+          </div>
+        </aside>
+      </section>
+    </section>
   </main>
 
   <footer class="foot">
@@ -745,5 +888,7 @@
   <script src="crop.js"></script>
   <script src="enhance.js"></script>
   <script src="upscale.js"></script>
+  <script src="convert.js"></script>
+  <script src="compress.js"></script>
 </body>
 </html>

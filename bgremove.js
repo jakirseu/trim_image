@@ -9,7 +9,10 @@
   const LIB_URL = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm';
   const API_HEALTH = '/api/health';
   const API_CUTOUT = '/api/remove-background';
-  const UPLOAD_MAX_BYTES = 8 * 1024 * 1024;   // re-encode above this before sending
+  // The model works at 1024x1024 internally and we keep the full-resolution image
+  // locally, so there's nothing to gain from uploading more than this.
+  const UPLOAD_EDGE = 1024;
+  const UPLOAD_MAX_BYTES = 2 * 1024 * 1024;   // send the original only if it's small
 
   // ---- Elements ----
   const $ = (id) => document.getElementById(id);
@@ -259,17 +262,23 @@
     if (modelField) modelField.classList.toggle('hidden', where === 'server');
   }
 
-  // Shrink oversized photos before upload so we stay inside the server's limit.
+  // Downscale to the model's working resolution before uploading. The mask comes
+  // back at this size and is scaled up locally — exactly what the model does
+  // internally — so the cutout is unchanged while the round-trip shrinks a lot.
   async function uploadBlob() {
-    if (lastFile && lastFile.size <= UPLOAD_MAX_BYTES) return lastFile;
-    const maxEdge = 2400;
-    const scale = Math.min(1, maxEdge / Math.max(srcW, srcH));
+    const longEdge = Math.max(srcW, srcH);
+    if (longEdge <= UPLOAD_EDGE && lastFile && lastFile.size <= UPLOAD_MAX_BYTES) {
+      return lastFile;                       // already small — don't re-encode it
+    }
+    const scale = Math.min(1, UPLOAD_EDGE / longEdge);
     const c = document.createElement('canvas');
-    c.width = Math.round(srcW * scale); c.height = Math.round(srcH * scale);
+    c.width = Math.max(1, Math.round(srcW * scale));
+    c.height = Math.max(1, Math.round(srcH * scale));
     const cx = c.getContext('2d');
-    cx.imageSmoothingQuality = 'high';
+    cx.imageSmoothingEnabled = true;
+    cx.imageSmoothingQuality = 'high';       // proper filtering beats the server's
     cx.drawImage(srcCanvas, 0, 0, c.width, c.height);
-    return new Promise((res) => c.toBlob(res, 'image/jpeg', 0.92));
+    return new Promise((res) => c.toBlob(res, 'image/jpeg', 0.9));
   }
 
   // POST the image, read the returned RGBA, and hand its alpha back as the mask.
@@ -277,6 +286,7 @@
     return new Promise((resolve, reject) => {
       const form = new FormData();
       form.append('image', blob, `${lastFileName}.${blob.type === 'image/jpeg' ? 'jpg' : 'png'}`);
+      form.append('output', 'mask');         // older servers ignore this and send RGBA
       const xhr = new XMLHttpRequest();
       xhr.open('POST', API_CUTOUT);
       xhr.responseType = 'blob';
@@ -285,8 +295,11 @@
         showProgress('Uploading…', e.loaded / e.total, `${mb(e.loaded)} / ${mb(e.total)} MB`);
       };
       xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
-        else {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve({ blob: xhr.response, isMask: xhr.getResponseHeader('X-Output') === 'mask' });
+          return;
+        }
+        {
           const r = new FileReader();
           r.onload = () => {
             let msg = `Server error ${xhr.status}`;
@@ -308,21 +321,25 @@
     const blob = await uploadBlob();
     if (id !== jobId) throw new Error('cancelled');
     showProgress('Uploading…', 0, '');
-    const png = await serverCutout(blob, id);
+    const { blob: png, isMask } = await serverCutout(blob, id);
     if (id !== jobId) throw new Error('cancelled');
     showProgress('Finishing…', null, 'Reading the result');
 
+    // Scale whatever came back up to the full-resolution image we still hold.
     const bmp = await createImageBitmap(png);
-    // The server may have capped very large images; scale its alpha back up.
     const c = document.createElement('canvas');
     c.width = srcW; c.height = srcH;
     const cx = c.getContext('2d', { willReadFrequently: true });
+    cx.imageSmoothingEnabled = true;
     cx.imageSmoothingQuality = 'high';
     cx.drawImage(bmp, 0, 0, srcW, srcH);
     const d = cx.getImageData(0, 0, srcW, srcH).data;
     const n = srcW * srcH;
     const m = new Uint8Array(n);
-    for (let i = 0, p = 3; i < n; i++, p += 4) m[i] = d[p];
+    // A grayscale mask arrives opaque with the value in the colour channels;
+    // a full RGBA cutout carries it in the alpha channel.
+    const off = isMask ? 0 : 3;
+    for (let i = 0, p = off; i < n; i++, p += 4) m[i] = d[p];
     return m;
   }
 

@@ -1,8 +1,8 @@
 # ✂️ TrimImage
 
-Six image tools that run **entirely in your browser** — trim empty space, crop to any aspect ratio,
-auto-enhance colour and exposure, upscale with AI, remove a portrait's background, or erase a colour
-into transparency. No uploads, no accounts, no server.
+Eight image tools that run **entirely in your browser** — trim empty space, crop, auto-enhance,
+upscale with AI, remove a portrait's background, erase a colour into transparency, convert between
+formats, or compress to a target file size. No uploads, no accounts, no server.
 
 **Live at [imagetrimmer.com](https://imagetrimmer.com)**
 
@@ -87,11 +87,33 @@ Click a colour to make it transparent, or wipe pixels away by hand with a round 
 - Full **undo/redo** (⌘/Ctrl+Z, ⌘/Ctrl+⇧+Z), checker/white/black preview backgrounds
 - Export as PNG or WEBP, or copy to clipboard
 
+### 🔄 Convert
+Change format between PNG, JPG and WEBP — several images at once.
+
+![Convert](docs/screenshot-convert.png)
+
+- **Batch**: drop as many images as you like, convert them all, download individually or in one go
+- Output formats are **probed at runtime**, so a format only appears if your browser can really encode it
+- Quality slider for lossy formats, and a matte colour for transparency heading into JPG
+- Per-file before/after sizes and a running total
+
+### 🗜️ Compress
+Shrink a file, with the **real** resulting size shown as you tune it — measured by encoding, not estimated.
+
+![Compress](docs/screenshot-compress.png)
+
+- Live file size as you drag quality or scale
+- **Fit to a size** binary-searches quality for the best image that still fits under, say, 150 KB
+- Preview shows the actual decoded output, so compression artefacts are visible before you commit
+- Hold to compare against the original
+
+> Both re-encode through the canvas, which strips EXIF metadata — including GPS coordinates — as a side effect.
+
 ---
 
 ## Privacy
 
-**Trim, Crop, Enhance, Upscale and Erase colour never upload anything** — they process pixels locally
+**Trim, Crop, Enhance, Upscale, Erase colour, Convert and Compress never upload anything** — they process pixels locally
 with the canvas API, and the ~3 MB upscaling model runs on your device.
 
 **Remove background** lets the user choose, in the tool itself:
@@ -192,6 +214,8 @@ unit, nginx block and verification.
 | [`crop.js`](crop.js) | Crop selection, aspect ratios, rotate/flip |
 | [`enhance.js`](enhance.js) | Tone/colour adjustments, auto-enhance, histogram |
 | [`upscale.js`](upscale.js) | AI super-resolution (UpscalerJS + TensorFlow.js) |
+| [`convert.js`](convert.js) | Batch format conversion |
+| [`compress.js`](compress.js) | Quality/size compression with target fitting |
 | [`server/`](server/) | Optional background-removal API (FastAPI + onnxruntime) — see its [README](server/README.md) |
 | [`bgremove.js`](bgremove.js) | AI background removal (model loading, mask refinement, compositing) |
 | [`eraser.js`](eraser.js) | Colour eraser, flood fill, brush, undo/redo |
@@ -208,8 +232,8 @@ when the browser exposes it, and falls back to WebAssembly automatically. Clipbo
 
 ## Credits
 
-Full attribution lives on the [credits page](credits.html). **Trim**, **Crop**, **Enhance** and
-**Erase colour** use no third-party code. The two AI tools build on:
+Full attribution lives on the [credits page](credits.html). Every tool except the two AI ones uses
+no third-party code at all. Those two build on:
 
 | Component | Author | License |
 |---|---|---|

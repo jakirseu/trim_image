@@ -18,7 +18,7 @@ from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
-from fastapi import FastAPI, File, HTTPException, Response, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
@@ -81,7 +81,7 @@ def infer_alpha(rgb: np.ndarray) -> np.ndarray:
     return np.asarray(Image.fromarray(mask).resize((w, h), Image.BILINEAR), dtype=np.uint8)
 
 
-def cutout_png(data: bytes) -> tuple[bytes, dict]:
+def cutout_png(data: bytes, mask_only: bool = False) -> tuple[bytes, dict]:
     t0 = time.time()
     try:
         img = Image.open(io.BytesIO(data))
@@ -95,11 +95,16 @@ def cutout_png(data: bytes) -> tuple[bytes, dict]:
 
     rgba = np.asarray(img, dtype=np.uint8)
     alpha = infer_alpha(rgba[:, :, :3])
-    out = rgba.copy()
-    out[:, :, 3] = np.minimum(rgba[:, :, 3], alpha)   # respect existing transparency
 
     buf = io.BytesIO()
-    Image.fromarray(out, "RGBA").save(buf, format="PNG", optimize=False, compress_level=6)
+    if mask_only:
+        # Grayscale alpha only. The client already holds the full-resolution image,
+        # so shipping colour back is wasted bytes.
+        Image.fromarray(alpha, "L").save(buf, format="PNG", optimize=False, compress_level=6)
+    else:
+        out = rgba.copy()
+        out[:, :, 3] = np.minimum(rgba[:, :, 3], alpha)   # respect existing transparency
+        Image.fromarray(out, "RGBA").save(buf, format="PNG", optimize=False, compress_level=6)
     return buf.getvalue(), {"w": img.size[0], "h": img.size[1], "ms": int((time.time() - t0) * 1000)}
 
 
@@ -119,7 +124,7 @@ async def health():
 
 
 @app.post("/api/remove-background")
-async def remove_background(image: UploadFile = File(...)):
+async def remove_background(image: UploadFile = File(...), output: str = Form("rgba")):
     data = await image.read()
     if not data:
         raise HTTPException(400, "Empty upload")
@@ -132,8 +137,9 @@ async def remove_background(image: UploadFile = File(...)):
         raise HTTPException(503, "Server busy — try again in a moment") from None
     try:
         loop = asyncio.get_running_loop()
+        mask_only = output == "mask"
         png, meta = await asyncio.wait_for(
-            loop.run_in_executor(_pool, cutout_png, data), timeout=JOB_TIMEOUT
+            loop.run_in_executor(_pool, cutout_png, data, mask_only), timeout=JOB_TIMEOUT
         )
     except asyncio.TimeoutError:
         raise HTTPException(504, "Processing timed out") from None
@@ -147,5 +153,7 @@ async def remove_background(image: UploadFile = File(...)):
             "Cache-Control": "no-store",          # never cache someone's photo
             "X-Process-Ms": str(meta["ms"]),
             "X-Image-Size": f"{meta['w']}x{meta['h']}",
+            "X-Output": "mask" if output == "mask" else "rgba",
+            "Access-Control-Expose-Headers": "X-Output, X-Process-Ms, X-Image-Size",
         },
     )
