@@ -1,4 +1,5 @@
 # /etc/systemd/system/trimimage.service
+# Copy as-is — paths match the layout in DEPLOY.md, nothing to edit.
 [Unit]
 Description=TrimImage background-removal API
 After=network.target
@@ -7,22 +8,21 @@ After=network.target
 Type=simple
 User=www-data
 Group=www-data
-WorkingDirectory=/opt/trimimage/server
+WorkingDirectory=/var/www/imagetrimmer/server
 Environment="TRIMIMAGE_MODEL=isnet_quint8.onnx"
 Environment="TRIMIMAGE_MAX_UPLOAD_MB=12"
 Environment="TRIMIMAGE_MAX_EDGE=4000"
-# Keep concurrency at or below the core count — inference is CPU-bound.
+# Keep these at or below the number of CPU cores — inference is CPU-bound.
 Environment="TRIMIMAGE_MAX_CONCURRENCY=2"
 Environment="TRIMIMAGE_THREADS=2"
-ExecStart=/opt/trimimage/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8000 --workers 1
+ExecStart=/usr/bin/python3 -m uvicorn app:app --host 127.0.0.1 --port 8000 --workers 1
 Restart=always
 RestartSec=3
-# hardening
+# hardening — the service only ever reads from disk
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/trimimage/server/models
 
 [Install]
 WantedBy=multi-user.target

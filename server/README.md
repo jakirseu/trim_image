@@ -21,25 +21,26 @@ the optional in-browser path.
 
 ## Install
 
+Everything lives in `/var/www/imagetrimmer/server`, using the system Python — no
+virtualenv. Full walkthrough in [DEPLOY.md](../DEPLOY.md); the short version:
+
 ```bash
-sudo mkdir -p /opt/trimimage && cd /opt/trimimage
-sudo git clone https://github.com/jakirseu/trim_image.git repo
-sudo cp -r repo/server ./server
+apt install -y python3-pip
+pip3 install --break-system-packages -r /var/www/imagetrimmer/server/requirements.txt
 
-python3 -m venv venv
-./venv/bin/pip install -r server/requirements.txt
+cd /var/www/imagetrimmer
+python3 server/fetch_model.py small          # 44 MB, fetched once
 
-# fetch the weights (44 MB "small" is the recommended default)
-./venv/bin/python server/fetch_model.py small
-
-sudo chown -R www-data:www-data /opt/trimimage
-sudo cp server/trimimage.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now trimimage
+cp server/trimimage.service /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now trimimage
 curl -s localhost:8000/api/health
 ```
 
-Then point nginx at it — see `nginx.conf.example` for the `/api/` proxy block,
-the upload size limit and the timeouts.
+`--break-system-packages` is required on Ubuntu 23.04+, which marks the system Python
+as externally managed.
+
+Then add the `/api/` proxy block to nginx — see `nginx.conf.example`, and keep
+`client_max_body_size` in step with `TRIMIMAGE_MAX_UPLOAD_MB` or uploads fail with 413.
 
 ## Model tiers
 

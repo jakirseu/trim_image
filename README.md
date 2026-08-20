@@ -172,28 +172,16 @@ Opening `index.html` directly via `file://` mostly works, but the **Remove backg
 
 ## Deploying
 
-Any static host works — copy the files as they are; the app is fully functional without a backend.
+Static files on any host — the app is fully functional with no backend.
 
-**Optional: the background-removal API.** Deploying [`server/`](server/README.md) lets phones skip the
-44–176 MB model download entirely — the browser uploads the photo, gets a cutout back, and refines the
-edges locally. It's plain FastAPI + onnxruntime (MIT) with the IS-Net weights (MIT), so **no AGPL code
-runs on your server**. Install steps, capacity numbers and the nginx block are in
-[`server/README.md`](server/README.md).
+Optionally deploy [`server/`](server/README.md), a small FastAPI + onnxruntime service
+that does background removal server-side, so phones skip the 44–176 MB model download.
+It uses only permissively licensed pieces (onnxruntime MIT, IS-Net weights MIT), so
+**no AGPL code runs on your server**. If it isn't deployed, the front end detects that
+and silently uses the in-browser path.
 
-Two more improvements:
-
-1. **Faster CPU inference.** Serve with these headers so ONNX Runtime can use multiple threads
-   (without them it silently falls back to single-threaded):
-
-   ```
-   Cross-Origin-Opener-Policy: same-origin
-   Cross-Origin-Embedder-Policy: require-corp
-   ```
-
-2. **Self-host the model.** By default the weights and WASM come from IMG.LY's CDN, who
-   [recommend self-hosting for production](https://github.com/imgly/background-removal-js#custom-asset-serving).
-   Download `https://staticimgly.com/@imgly/background-removal-data/1.7.0/package.tgz`, serve the
-   contents of `package/dist`, and set `publicPath` in the config in [`bgremove.js`](bgremove.js).
+**→ [DEPLOY.md](DEPLOY.md)** has the full walkthrough: install, model fetch, systemd
+unit, nginx block and verification.
 
 ## Project structure
 

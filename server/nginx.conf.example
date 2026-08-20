@@ -21,19 +21,15 @@ server {
     root /var/www/imagetrimmer;
     index index.html;
 
+    # the model is 44 MB and only uvicorn reads it — don't serve it to the world
+    location ^~ /server/models/ { return 404; }
+
     # Lets ONNX Runtime use threads in the in-browser path (~2.5x faster).
     add_header Cross-Origin-Opener-Policy   "same-origin"  always;
     add_header Cross-Origin-Embedder-Policy "require-corp" always;
 
     location / {
         try_files $uri $uri/ =404;
-    }
-
-    # Hashed model files never change — cache them hard.
-    location /models/ {
-        add_header Cache-Control "public, max-age=31536000, immutable";
-        add_header Cross-Origin-Resource-Policy "cross-origin";
-        try_files $uri =404;
     }
 
     location /api/ {
