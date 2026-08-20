@@ -1,0 +1,55 @@
+# TrimImage — static site + background-removal API.
+# Put this in /etc/nginx/sites-available/imagetrimmer.com and symlink it into
+# sites-enabled. Certificates come from Cloudflare (SSL/TLS -> Origin Server).
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name imagetrimmer.com www.imagetrimmer.com;
+    return 301 https://www.imagetrimmer.com$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name imagetrimmer.com www.imagetrimmer.com;
+
+    ssl_certificate     /etc/ssl/cloudflare/imagetrimmer.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/imagetrimmer.key;
+
+    root /var/www/imagetrimmer;
+    index index.html;
+
+    # Lets ONNX Runtime use threads in the in-browser path (~2.5x faster).
+    add_header Cross-Origin-Opener-Policy   "same-origin"  always;
+    add_header Cross-Origin-Embedder-Policy "require-corp" always;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # Hashed model files never change — cache them hard.
+    location /models/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Cross-Origin-Resource-Policy "cross-origin";
+        try_files $uri =404;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 12m;      # must match TRIMIMAGE_MAX_UPLOAD_MB
+        proxy_read_timeout 180s;
+        proxy_send_timeout 180s;
+        proxy_request_buffering off;   # start work while the upload streams in
+
+        # never cache someone's photo
+        add_header Cache-Control "no-store" always;
+    }
+}

@@ -16,12 +16,12 @@
     });
     tabPanels.forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== name));
     try {
-      const hash = { bg: '#remove-background', erase: '#erase-color', crop: '#crop' }[name] || '';
+      const hash = { bg: '#remove-background', erase: '#erase-color', crop: '#crop', enhance: '#enhance', upscale: '#upscale' }[name] || '';
       history.replaceState(null, '', hash || location.pathname + location.search);
     } catch { /* file:// may refuse; ignore */ }
   }
   tabButtons.forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
-  const fromHash = { '#remove-background': 'bg', '#erase-color': 'erase', '#crop': 'crop' }[location.hash];
+  const fromHash = { '#remove-background': 'bg', '#erase-color': 'erase', '#crop': 'crop', '#enhance': 'enhance', '#upscale': 'upscale' }[location.hash];
   if (fromHash) setTab(fromHash);
   const trimActive = () => document.body.dataset.tab === 'trim';
 

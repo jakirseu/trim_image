@@ -1,0 +1,3 @@
+# Weights are fetched at deploy time with fetch_model.py — never commit them.
+models/
+*.onnx

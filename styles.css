@@ -126,7 +126,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
   overflow: auto;
   position: relative;
 }
-#canvas, #bgCanvas, #erCanvas, #crCanvas {
+#canvas, #bgCanvas, #erCanvas, #crCanvas, #enCanvas, #upCanvas {
   max-width: 100%;
   max-height: 68vh;
   image-rendering: auto;
@@ -669,3 +669,40 @@ select:disabled { opacity: .6; }
 .num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .icon-btn { font-size: 16px; line-height: 1; padding: 7px 11px; min-width: 36px; }
+
+/* ============================================================
+   Enhance tab
+   ============================================================ */
+.slider-field { margin-bottom: 14px; }
+.slider-field > label { display: flex; justify-content: space-between; align-items: baseline; }
+.slider-field .muted { margin-top: 4px; }
+#enCompareBtn.armed { border-color: var(--accent); color: var(--accent); }
+#enCompareBtn { user-select: none; -webkit-user-select: none; touch-action: none; }
+
+.histogram {
+  width: 256px;
+  height: 46px;
+  max-width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+#upCompareBtn.armed { border-color: var(--accent); color: var(--accent); }
+#upCompareBtn { user-select: none; -webkit-user-select: none; touch-action: none; }
+
+/* Download-consent overlay */
+.confirm-icon { font-size: 28px; line-height: 1; }
+.confirm-actions { display: flex; gap: 8px; justify-content: center; margin: 14px 0 10px; flex-wrap: wrap; }
+.data-warn {
+  color: var(--detected);
+  border: 1px dashed var(--detected);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  margin: 12px 0 0;
+  line-height: 1.4;
+}
+
+.plain-list { padding-left: 18px; margin: 8px 0 0; }
+.plain-list li { margin-bottom: 10px; line-height: 1.6; }

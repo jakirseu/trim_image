@@ -15,7 +15,7 @@
   <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="https://www.imagetrimmer.com/credits.html" />
   <meta property="og:title" content="Credits &amp; Licenses — TrimImage" />
-  <meta property="og:description" content="The open-source software, models and licenses behind TrimImage's trim, background-removal and color-erase tools." />
+  <meta property="og:description" content="How TrimImage handles your images, plus the open-source software, models and licenses behind its tools." />
   <meta property="og:image" content="https://www.imagetrimmer.com/og-image.png?v=1" />
   <meta property="og:image:secure_url" content="https://www.imagetrimmer.com/og-image.png?v=1" />
   <meta property="og:image:type" content="image/png" />
@@ -26,7 +26,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://www.imagetrimmer.com/credits.html" />
   <meta name="twitter:title" content="Credits &amp; Licenses — TrimImage" />
-  <meta name="twitter:description" content="The open-source software, models and licenses behind TrimImage's trim, background-removal and color-erase tools." />
+  <meta name="twitter:description" content="How TrimImage handles your images, plus the open-source software, models and licenses behind its tools." />
   <meta name="twitter:image" content="https://www.imagetrimmer.com/og-image.png?v=1" />
   <meta name="twitter:image:alt" content="TrimImage — trim, remove background, and erase color tools that run 100% in your browser" />
 
@@ -45,9 +45,10 @@
   <main class="page">
     <h1>Credits &amp; Licenses</h1>
     <p class="lead">
-      TrimImage runs entirely in your browser — no image is ever uploaded. The tools below
-      are built with open-source software, and this page credits every third-party
-      component, its authors and its license.
+      TrimImage runs in your browser. The one exception is background removal, which offers
+      an optional server mode — see <a href="#privacy">Privacy</a> below. The tools are built with
+      open-source software, and this page credits every third-party component, its authors and
+      its license.
     </p>
 
     <!-- What uses what -->
@@ -63,6 +64,14 @@
           <p class="muted">No third-party code. Canvas selection, rotation and flipping written for this app.</p>
         </div>
         <div class="credit-card">
+          <h3>✨ Enhance</h3>
+          <p class="muted">No third-party code. Lookup-table tone curves, grey-world auto levels and unsharp masking written for this app.</p>
+        </div>
+        <div class="credit-card">
+          <h3>🔍 Upscale</h3>
+          <p class="muted">Uses the AI super-resolution stack credited below — the model runs locally on your device.</p>
+        </div>
+        <div class="credit-card">
           <h3>🧽 Erase color</h3>
           <p class="muted">No third-party code. Color-distance matching, flood fill and brush compositing written for this app.</p>
         </div>
@@ -76,7 +85,7 @@
     <!-- Third-party components -->
     <section class="page-section">
       <h2>Open-source components</h2>
-      <p class="muted">Used by the <b>Remove background</b> tool.</p>
+      <p class="muted">Used by the two AI tools — <b>Remove background</b> and <b>Upscale</b>. Every other tool is dependency-free.</p>
 
       <div class="table-scroll">
         <table class="lic-table">
@@ -110,6 +119,33 @@
               <td>Microsoft</td>
               <td>Executes the model on WebGPU / WebAssembly</td>
               <td><span class="lic-tag">MIT</span></td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://github.com/thekevinscott/UpscalerJS" target="_blank" rel="noopener noreferrer">UpscalerJS</a>
+                <span class="ver">v1.0.0 · Upscale</span>
+              </td>
+              <td>Kevin Scott</td>
+              <td>Runs the super-resolution model patch by patch</td>
+              <td><span class="lic-tag">MIT</span></td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://github.com/thekevinscott/UpscalerJS" target="_blank" rel="noopener noreferrer">ESRGAN “medium” model</a>
+                <span class="ver">@upscalerjs/esrgan-medium v1.0.0</span>
+              </td>
+              <td>Kevin Scott · UpscalerJS</td>
+              <td>RDN neural network that enlarges images 2×/3×/4×</td>
+              <td><span class="lic-tag">MIT</span></td>
+            </tr>
+            <tr>
+              <td>
+                <a href="https://github.com/tensorflow/tfjs" target="_blank" rel="noopener noreferrer">TensorFlow.js</a>
+                <span class="ver">v4.11 · Upscale</span>
+              </td>
+              <td>Google &amp; contributors</td>
+              <td>Executes the upscaling model on WebGL</td>
+              <td><span class="lic-tag">Apache-2.0</span></td>
             </tr>
             <tr>
               <td><a href="https://github.com/scijs/ndarray" target="_blank" rel="noopener noreferrer">ndarray</a></td>
@@ -148,6 +184,7 @@
         The background-removal library is loaded from <a href="https://www.jsdelivr.com/" target="_blank" rel="noopener noreferrer">jsDelivr</a>,
         and the neural-network weights plus the WebAssembly runtime are downloaded from
         IMG.LY's asset CDN (<code>staticimgly.com</code>) the first time you use that tool.
+        The <b>Upscale</b> tool likewise fetches TensorFlow.js and a ~3 MB ESRGAN model from jsDelivr on first use.
         They are then cached by your browser. Your photo is never part of that traffic —
         only the model travels, and it travels <em>to</em> you.
       </p>
@@ -188,17 +225,33 @@
     </section>
 
     <!-- Privacy -->
-    <section class="page-section">
+    <section class="page-section" id="privacy">
       <h2>Privacy</h2>
       <p class="muted">
-        Every tool on this site processes images locally with the HTML canvas API and, for background
-        removal, a model running on your own device. No image data is uploaded, stored or tracked.
+        <b>Trim, Crop, Enhance, Upscale and Erase color never upload anything.</b> They process pixels
+        locally with the HTML canvas API, and the Upscale model runs on your own device.
+      </p>
+      <p class="muted">
+        <b>Remove background</b> gives you the choice, in the tool itself:
+      </p>
+      <ul class="muted plain-list">
+        <li><b>On our server</b> (the default) — your photo is uploaded over HTTPS, the cutout is
+          computed, and the image is discarded as soon as the response is sent. It is never written
+          to disk, never logged, and the response carries <code>Cache-Control: no-store</code> so
+          nothing in between retains a copy. This exists so people on mobile data don't have to
+          download a 44–176 MB model.</li>
+        <li><b>In my browser</b> — nothing is uploaded at all. The model is downloaded once
+          (with the size shown up front, so you can decline) and everything runs on your device.</li>
+      </ul>
+      <p class="muted">
+        No accounts, no analytics, no tracking cookies, in either mode.
       </p>
     </section>
   </main>
 
   <footer class="foot">
-    <p>No uploads. No tracking. Your images never leave this device.</p>
+    <p>No accounts. No tracking. Every tool runs in your browser — background removal can also
+      run on our server if you'd rather not download the model.</p>
     <p class="foot-links"><a href="index.html">← Back to the app</a></p>
     <p class="foot-bmc">
       <a class="bmc-btn" href="https://buymeacoffee.com/jakirhossain" target="_blank" rel="noopener noreferrer">

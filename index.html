@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trim Image — Trim images &amp; remove backgrounds in your browser</title>
-  <meta name="description" content="Free online tools to trim empty space around images (like Photoshop's Trim) and remove the background from portraits with AI. 100% private — everything runs in your browser." />
+  <title>Trim Image — Trim, crop, enhance &amp; upscale images in your browser</title>
+  <meta name="description" content="Trim empty space, crop, auto-enhance, upscale with AI, remove portrait backgrounds, and erase colors into transparency. Free, no accounts, no tracking." />
 
   <!-- Canonical + social sharing -->
   <link rel="canonical" href="https://www.imagetrimmer.com/" />
@@ -14,8 +14,8 @@
   <meta property="og:site_name" content="TrimImage" />
   <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="https://www.imagetrimmer.com/" />
-  <meta property="og:title" content="TrimImage — Trim, remove backgrounds &amp; erase colors in your browser" />
-  <meta property="og:description" content="Trim empty space, remove portrait backgrounds with AI, and erase colors into transparency — all in your browser. No uploads, no accounts." />
+  <meta property="og:title" content="TrimImage — Trim, crop, enhance, upscale &amp; remove backgrounds in your browser" />
+  <meta property="og:description" content="Trim empty space, crop, auto-enhance, upscale with AI, remove portrait backgrounds, and erase colors into transparency. Free, no accounts, no tracking." />
   <meta property="og:image" content="https://www.imagetrimmer.com/og-image.png?v=1" />
   <meta property="og:image:secure_url" content="https://www.imagetrimmer.com/og-image.png?v=1" />
   <meta property="og:image:type" content="image/png" />
@@ -25,8 +25,8 @@
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://www.imagetrimmer.com/" />
-  <meta name="twitter:title" content="TrimImage — Trim, remove backgrounds &amp; erase colors in your browser" />
-  <meta name="twitter:description" content="Trim empty space, remove portrait backgrounds with AI, and erase colors into transparency — all in your browser. No uploads, no accounts." />
+  <meta name="twitter:title" content="TrimImage — Trim, crop, enhance, upscale &amp; remove backgrounds in your browser" />
+  <meta name="twitter:description" content="Trim empty space, crop, auto-enhance, upscale with AI, remove portrait backgrounds, and erase colors into transparency. Free, no accounts, no tracking." />
   <meta name="twitter:image" content="https://www.imagetrimmer.com/og-image.png?v=1" />
   <meta name="twitter:image:alt" content="TrimImage — trim, remove background, and erase color tools that run 100% in your browser" />
 
@@ -39,7 +39,7 @@
       <span class="logo">✂️</span>
       <span class="brand-name">TrimImage</span>
     </div>
-    <a class="ghlink" href="https://github.com" target="_blank" rel="noopener">100% private · runs in your browser</a>
+    <a class="ghlink" href="credits.html">Private by default · runs in your browser</a>
   </header>
 
   <main>
@@ -47,6 +47,8 @@
     <nav class="tabs" role="tablist" aria-label="Tools">
       <button class="tab active" role="tab" data-tab="trim" type="button" aria-selected="true">✂️ Trim image</button>
       <button class="tab" role="tab" data-tab="crop" type="button" aria-selected="false">⛶ Crop</button>
+      <button class="tab" role="tab" data-tab="enhance" type="button" aria-selected="false">✨ Enhance</button>
+      <button class="tab" role="tab" data-tab="upscale" type="button" aria-selected="false">🔍 Upscale</button>
       <button class="tab" role="tab" data-tab="bg" type="button" aria-selected="false">🪄 Remove background</button>
       <button class="tab" role="tab" data-tab="erase" type="button" aria-selected="false">🧽 Erase color</button>
     </nav>
@@ -150,7 +152,7 @@
           <button id="bgPickBtn" class="btn btn-primary" type="button">Choose portrait</button>
           <p class="hint">or drag &amp; drop · paste from clipboard (Ctrl/⌘+V)</p>
           <p class="formats">PNG · JPG · WEBP · works best on people &amp; portraits</p>
-          <p class="privacy-note">Your photo never leaves this device. The AI model (≈ 44–176 MB depending on quality) is downloaded once from a CDN and cached by your browser.</p>
+          <p class="privacy-note">Two ways to run this: on our server (nothing to download — your photo is sent, processed, and discarded straight away) or entirely on your device (private, but needs a one-time model download of ≈ 44–176 MB).</p>
         </div>
         <input id="bgFileInput" type="file" accept="image/*" hidden />
       </section>
@@ -167,6 +169,19 @@
           </div>
           <div class="stage" id="bgStage">
             <canvas id="bgCanvas"></canvas>
+            <div class="progress-overlay hidden" id="bgConfirm">
+              <div class="progress-card">
+                <div class="confirm-icon" aria-hidden="true">⬇</div>
+                <div class="progress-text" id="bgConfirmText">One-time download</div>
+                <div class="progress-sub" id="bgConfirmSub"></div>
+                <p class="data-warn hidden" id="bgSaveData">You appear to be on a metered or slow connection.</p>
+                <div class="confirm-actions">
+                  <button id="bgConfirmYes" class="btn btn-primary btn-sm" type="button">Download &amp; continue</button>
+                  <button id="bgConfirmNo" class="btn btn-ghost btn-sm" type="button">Not now</button>
+                </div>
+                <p class="progress-sub">Stored by your browser — later images use the cached copy.</p>
+              </div>
+            </div>
             <div class="progress-overlay hidden" id="bgProgress" aria-live="polite">
               <div class="progress-card">
                 <div class="spinner" aria-hidden="true"></div>
@@ -183,6 +198,15 @@
 
         <aside class="controls">
           <h2>Background</h2>
+
+          <div class="field" id="bgModeRow">
+            <label>Where to process</label>
+            <div class="seg" id="bgWhere">
+              <button data-w="server" class="active" type="button">On our server</button>
+              <button data-w="local" type="button">In my browser</button>
+            </div>
+            <p class="muted" id="bgWhereHint">Server processing is instant on phones — nothing to download. Your photo is sent to our server, processed, and discarded.</p>
+          </div>
 
           <div class="field">
             <label>New background</label>
@@ -230,11 +254,11 @@
           <div class="field">
             <label for="bgModel">AI quality</label>
             <select id="bgModel">
-              <option value="small">Fast — 44 MB model</option>
-              <option value="medium" selected>Balanced — 88 MB model</option>
+              <option value="small" selected>Fast — 44 MB model</option>
+              <option value="medium">Balanced — 88 MB model</option>
               <option value="large">Best — 176 MB model</option>
             </select>
-            <p class="muted">Higher quality = larger one-time download and slower processing.</p>
+            <p class="muted">Higher quality means a bigger one-time download and slower processing. Fast is a good default on mobile data.</p>
           </div>
 
           <div class="field">
@@ -498,10 +522,205 @@
         </aside>
       </section>
     </section>
+
+    <!-- ===================== TAB: ENHANCE ===================== -->
+    <section class="tab-panel hidden" data-panel="enhance" role="tabpanel">
+      <!-- Drop / upload zone -->
+      <section id="enDropzone" class="dropzone" tabindex="0">
+        <div class="drop-inner">
+          <div class="drop-icon">✨</div>
+          <h1>Enhance Image</h1>
+          <p class="subtitle">One click to <em>auto-fix</em> exposure and colour — then fine-tune every slider yourself.</p>
+          <button id="enPickBtn" class="btn btn-primary" type="button">Choose image</button>
+          <p class="hint">or drag &amp; drop · paste from clipboard (Ctrl/⌘+V)</p>
+          <p class="formats">PNG · JPG · WEBP · GIF · BMP</p>
+        </div>
+        <input id="enFileInput" type="file" accept="image/*" hidden />
+      </section>
+
+      <!-- Editor -->
+      <section id="enEditor" class="editor hidden">
+        <div class="canvas-wrap">
+          <div class="canvas-toolbar">
+            <div class="toolbar-group">
+              <button id="enResetBtn" class="btn btn-ghost" type="button">↻ New image</button>
+              <button id="enCompareBtn" class="btn btn-ghost" type="button" title="Press and hold to see the original">👁 Hold to compare</button>
+            </div>
+            <div class="dims" id="enDimsLabel"></div>
+          </div>
+          <div class="stage" id="enStage">
+            <canvas id="enCanvas"></canvas>
+          </div>
+          <div class="legend">
+            <canvas id="enHist" class="histogram" width="256" height="46"></canvas>
+            <span class="muted" id="enStatus"></span>
+          </div>
+        </div>
+
+        <aside class="controls">
+          <h2>Enhance</h2>
+
+          <div class="actions" style="margin-bottom:18px">
+            <button id="enAutoBtn" class="btn btn-primary btn-block" type="button">✨ Auto-enhance</button>
+            <button id="enResetAdjBtn" class="btn btn-ghost btn-block" type="button">Reset all sliders</button>
+          </div>
+
+          <div class="field slider-field">
+            <label for="enExposure">Exposure <span class="val" id="enExposureVal">0</span></label>
+            <input type="range" id="enExposure" min="-100" max="100" value="0" />
+          </div>
+          <div class="field slider-field">
+            <label for="enBrightness">Brightness <span class="val" id="enBrightnessVal">0</span></label>
+            <input type="range" id="enBrightness" min="-100" max="100" value="0" />
+          </div>
+          <div class="field slider-field">
+            <label for="enContrast">Contrast <span class="val" id="enContrastVal">0</span></label>
+            <input type="range" id="enContrast" min="-100" max="100" value="0" />
+          </div>
+          <div class="field slider-field">
+            <label for="enHighlights">Highlights <span class="val" id="enHighlightsVal">0</span></label>
+            <input type="range" id="enHighlights" min="-100" max="100" value="0" />
+            <p class="muted">Negative recovers blown highlights.</p>
+          </div>
+          <div class="field slider-field">
+            <label for="enShadows">Shadows <span class="val" id="enShadowsVal">0</span></label>
+            <input type="range" id="enShadows" min="-100" max="100" value="0" />
+            <p class="muted">Positive lifts detail out of dark areas.</p>
+          </div>
+          <div class="field slider-field">
+            <label for="enSaturation">Saturation <span class="val" id="enSaturationVal">0</span></label>
+            <input type="range" id="enSaturation" min="-100" max="100" value="0" />
+          </div>
+          <div class="field slider-field">
+            <label for="enVibrance">Vibrance <span class="val" id="enVibranceVal">0</span></label>
+            <input type="range" id="enVibrance" min="-100" max="100" value="0" />
+            <p class="muted">Boosts muted colours while leaving already-vivid ones alone.</p>
+          </div>
+          <div class="field slider-field">
+            <label for="enTemperature">Temperature <span class="val" id="enTemperatureVal">0</span></label>
+            <input type="range" id="enTemperature" min="-100" max="100" value="0" />
+            <p class="muted">Negative is cooler/bluer, positive is warmer/oranger.</p>
+          </div>
+          <div class="field slider-field">
+            <label for="enTint">Tint <span class="val" id="enTintVal">0</span></label>
+            <input type="range" id="enTint" min="-100" max="100" value="0" />
+            <p class="muted">Negative is greener, positive is more magenta.</p>
+          </div>
+          <div class="field slider-field">
+            <label for="enSharpen">Sharpen <span class="val" id="enSharpenVal">0</span></label>
+            <input type="range" id="enSharpen" min="0" max="100" value="0" />
+          </div>
+          <div class="field slider-field">
+            <label for="enVignette">Vignette <span class="val" id="enVignetteVal">0</span></label>
+            <input type="range" id="enVignette" min="0" max="100" value="0" />
+          </div>
+
+          <div class="field">
+            <label for="enFormat">Download format</label>
+            <select id="enFormat">
+              <option value="image/png">PNG (keeps transparency)</option>
+              <option value="image/jpeg">JPG</option>
+              <option value="image/webp">WEBP</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button id="enDownloadBtn" class="btn btn-primary btn-block" type="button">⬇ Download enhanced image</button>
+            <button id="enCopyBtn" class="btn btn-ghost btn-block" type="button">Copy to clipboard</button>
+          </div>
+        </aside>
+      </section>
+    </section>
+
+    <!-- ===================== TAB: UPSCALE ===================== -->
+    <section class="tab-panel hidden" data-panel="upscale" role="tabpanel">
+      <!-- Drop / upload zone -->
+      <section id="upDropzone" class="dropzone" tabindex="0">
+        <div class="drop-inner">
+          <div class="drop-icon">🔍</div>
+          <h1>Upscale Image</h1>
+          <p class="subtitle">Enlarge a small image <em>2×, 3× or 4×</em> with AI — sharper than a plain resize.</p>
+          <button id="upPickBtn" class="btn btn-primary" type="button">Choose image</button>
+          <p class="hint">or drag &amp; drop · paste from clipboard (Ctrl/⌘+V)</p>
+          <p class="formats">PNG · JPG · WEBP · works best on small images</p>
+          <p class="privacy-note">Runs on your device. The AI model is only ~3 MB and is downloaded once, then cached by your browser.</p>
+        </div>
+        <input id="upFileInput" type="file" accept="image/*" hidden />
+      </section>
+
+      <!-- Editor -->
+      <section id="upEditor" class="editor hidden">
+        <div class="canvas-wrap">
+          <div class="canvas-toolbar">
+            <div class="toolbar-group">
+              <button id="upResetBtn" class="btn btn-ghost" type="button">↻ New image</button>
+              <button id="upCompareBtn" class="btn btn-ghost" type="button" title="Press and hold to see a plain resize at the same size" disabled>👁 Hold to compare</button>
+            </div>
+            <div class="dims" id="upDimsLabel"></div>
+          </div>
+          <div class="stage" id="upStage">
+            <canvas id="upCanvas"></canvas>
+            <div class="progress-overlay hidden" id="upProgress" aria-live="polite">
+              <div class="progress-card">
+                <div class="spinner" aria-hidden="true"></div>
+                <div class="progress-text" id="upProgressText">Loading…</div>
+                <div class="progress-bar" id="upProgressBar"><div class="progress-fill" id="upProgressFill"></div></div>
+                <div class="progress-sub" id="upProgressSub"></div>
+                <button id="upCancelBtn" class="btn btn-ghost btn-sm" type="button" style="margin-top:14px">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <div class="status-line">
+            <span class="muted" id="upStatus"></span>
+          </div>
+        </div>
+
+        <aside class="controls">
+          <h2>Upscale</h2>
+
+          <div class="field">
+            <label>Scale factor</label>
+            <div class="seg" id="upScale">
+              <button data-s="2" class="active" type="button">2×</button>
+              <button data-s="3" type="button">3×</button>
+              <button data-s="4" type="button">4×</button>
+            </div>
+          </div>
+
+          <div class="result-box">
+            <div class="result-line"><span>Original</span><b id="upSrcDims">—</b></div>
+            <div class="result-line"><span>Result</span><b id="upOutDims">—</b></div>
+            <div class="result-line"><span>Pixels</span><b id="upPixels">—</b></div>
+          </div>
+
+          <p class="muted" id="upWarn"></p>
+
+          <div class="actions" style="margin-bottom:18px">
+            <button id="upRunBtn" class="btn btn-primary btn-block" type="button">✨ Upscale image</button>
+          </div>
+
+          <div class="field">
+            <label for="upFormat">Download format</label>
+            <select id="upFormat">
+              <option value="image/png">PNG (keeps transparency)</option>
+              <option value="image/jpeg">JPG</option>
+              <option value="image/webp">WEBP</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button id="upDownloadBtn" class="btn btn-primary btn-block" type="button" disabled>⬇ Download upscaled image</button>
+            <button id="upCopyBtn" class="btn btn-ghost btn-block" type="button" disabled>Copy to clipboard</button>
+          </div>
+          <p class="error center hidden" id="upError"></p>
+        </aside>
+      </section>
+    </section>
   </main>
 
   <footer class="foot">
-    <p>No uploads. No tracking. Your images never leave this device.</p>
+    <p>No accounts. No tracking. Every tool runs in your browser — background removal can also
+      run on our server if you'd rather not download the model.</p>
     <p class="foot-links">
       <a href="credits.html">Credits &amp; licenses</a>
       <span class="foot-sep">·</span>
@@ -524,5 +743,7 @@
   <script src="bgremove.js"></script>
   <script src="eraser.js"></script>
   <script src="crop.js"></script>
+  <script src="enhance.js"></script>
+  <script src="upscale.js"></script>
 </body>
 </html>

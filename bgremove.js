@@ -7,6 +7,9 @@
   'use strict';
 
   const LIB_URL = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm';
+  const API_HEALTH = '/api/health';
+  const API_CUTOUT = '/api/remove-background';
+  const UPLOAD_MAX_BYTES = 8 * 1024 * 1024;   // re-encode above this before sending
 
   // ---- Elements ----
   const $ = (id) => document.getElementById(id);
@@ -21,12 +24,22 @@
   const dimsLabel  = $('bgDimsLabel');
   const statusEl   = $('bgStatus');
 
+  const confirmEl    = $('bgConfirm');
+  const confirmText  = $('bgConfirmText');
+  const confirmSub   = $('bgConfirmSub');
+  const saveDataWarn = $('bgSaveData');
+  const confirmYes   = $('bgConfirmYes');
+  const confirmNo    = $('bgConfirmNo');
+
   const progressEl   = $('bgProgress');
   const progressText = $('bgProgressText');
   const progressBar  = $('bgProgressBar');
   const progressFill = $('bgProgressFill');
   const progressSub  = $('bgProgressSub');
 
+  const whereSeg   = $('bgWhere');
+  const whereHint  = $('bgWhereHint');
+  const whereRow   = $('bgModeRow');
   const outModeSeg = $('bgOutMode');
   const colorRow   = $('bgColorRow');
   const swatches   = $('bgSwatches');
@@ -58,9 +71,13 @@
   let forceCpu = false;    // set after a WebGPU failure
   let attempt = 0;         // bumps the lib's memoize key so a failed download can be retried
   let lastFileName = 'portrait';
+  let lastFile = null;           // the original File, so uploads keep full fidelity
+  let where = 'server';          // 'server' | 'local'
+  let serverUp = null;           // null = unknown, true/false once probed
   let libPromise = null;
   let rebuildTimer = 0;
   let comparing = false;
+  const okToDownload = new Set();   // model tiers the user has already agreed to fetch
   let gpuOk = null;        // cached WebGPU adapter check
   let inferT0 = 0;         // when inference (not download) started
 
@@ -72,6 +89,7 @@
   function loadFile(file) {
     if (!file || !file.type.startsWith('image/')) return;
     lastFileName = (file.name || 'portrait').replace(/\.[^.]+$/, '') || 'portrait';
+    lastFile = file;
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => { URL.revokeObjectURL(url); onImageReady(img); };
@@ -134,15 +152,46 @@
     busy = true;
     setBusyUI(true);
     hideError();
-    showProgress('Loading AI engine…', null, 'Fetching the background-removal library');
+    const t0 = performance.now();
+
+    // --- server path -------------------------------------------------
+    if (where === 'server' && await probeServer()) {
+      try {
+        showProgress('Sending to server…', null, 'Your photo is processed there and discarded');
+        mask = await maskFromServer(id);
+        if (id !== jobId) return;
+        hideProgress();
+        const secs = ((performance.now() - t0) / 1000).toFixed(1);
+        statusEl.textContent = `Background removed on the server in ${secs} s. Pick a color or refine the edge →`;
+        rebuildCutout();
+        return;
+      } catch (e) {
+        if (id !== jobId) return;
+        console.warn('server path failed, falling back to in-browser:', e);
+        statusEl.textContent = 'Server unavailable — switching to in-browser processing.';
+        serverUp = false; where = 'local'; applyWhereUI();
+      } finally {
+        if (id === jobId && where === 'server') { busy = false; setBusyUI(false); }
+      }
+    }
+
+    // --- in-browser path ---------------------------------------------
     let device = (!forceCpu && await gpuAvailable()) ? 'gpu' : 'cpu';
     if (id !== jobId) return;
+
+    const model = modelSel.value;
+    if (!(await confirmDownload(model, device === 'gpu'))) {
+      busy = false; setBusyUI(false);
+      statusEl.textContent = 'Cancelled — no data used.';
+      return;
+    }
+    if (id !== jobId) return;
+    showProgress('Loading AI engine…', null, 'Fetching the background-removal library');
 
     try {
       const lib = await loadLib();
       if (id !== jobId) return;
 
-      const model = modelSel.value;
       // Hand the exact pixels we already decoded to the model (keeps dimensions identical).
       const blob = new Blob([srcData.data], { type: `image/x-rgba8;width=${srcW};height=${srcH}` });
 
@@ -176,6 +225,101 @@
     } finally {
       if (id === jobId) { busy = false; setBusyUI(false); }
     }
+  }
+
+  // Probe once; if the API isn't there we quietly fall back to in-browser mode.
+  async function probeServer() {
+    if (serverUp !== null) return serverUp;
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 4000);
+      const r = await fetch(API_HEALTH, { signal: ctl.signal });
+      clearTimeout(t);
+      const j = await r.json();
+      serverUp = r.ok && j.status === 'ok';
+    } catch { serverUp = false; }
+    applyWhereUI();
+    return serverUp;
+  }
+
+  function applyWhereUI() {
+    if (serverUp === false) {
+      where = 'local';
+      whereRow.classList.add('hidden');
+    } else {
+      whereRow.classList.remove('hidden');
+    }
+    [...whereSeg.children].forEach((b) => b.classList.toggle('active', b.dataset.w === where));
+    whereHint.textContent = where === 'server'
+      ? 'Processed on our server — instant on phones, nothing to download. Your photo is sent there, processed, and discarded immediately.'
+      : 'Processed entirely on this device — your photo never leaves it. Needs a one-time model download.';
+  }
+
+  // Shrink oversized photos before upload so we stay inside the server's limit.
+  async function uploadBlob() {
+    if (lastFile && lastFile.size <= UPLOAD_MAX_BYTES) return lastFile;
+    const maxEdge = 2400;
+    const scale = Math.min(1, maxEdge / Math.max(srcW, srcH));
+    const c = document.createElement('canvas');
+    c.width = Math.round(srcW * scale); c.height = Math.round(srcH * scale);
+    const cx = c.getContext('2d');
+    cx.imageSmoothingQuality = 'high';
+    cx.drawImage(srcCanvas, 0, 0, c.width, c.height);
+    return new Promise((res) => c.toBlob(res, 'image/jpeg', 0.92));
+  }
+
+  // POST the image, read the returned RGBA, and hand its alpha back as the mask.
+  function serverCutout(blob, id) {
+    return new Promise((resolve, reject) => {
+      const form = new FormData();
+      form.append('image', blob, `${lastFileName}.${blob.type === 'image/jpeg' ? 'jpg' : 'png'}`);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', API_CUTOUT);
+      xhr.responseType = 'blob';
+      xhr.upload.onprogress = (e) => {
+        if (id !== jobId || !e.lengthComputable) return;
+        showProgress('Uploading…', e.loaded / e.total, `${mb(e.loaded)} / ${mb(e.total)} MB`);
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
+        else {
+          const r = new FileReader();
+          r.onload = () => {
+            let msg = `Server error ${xhr.status}`;
+            try { msg = JSON.parse(r.result).detail || msg; } catch {}
+            reject(new Error(msg));
+          };
+          r.onerror = () => reject(new Error(`Server error ${xhr.status}`));
+          r.readAsText(xhr.response);
+        }
+      };
+      xhr.onerror = () => reject(new Error('Could not reach the server'));
+      xhr.ontimeout = () => reject(new Error('The server took too long'));
+      xhr.timeout = 180000;
+      xhr.send(form);
+    });
+  }
+
+  async function maskFromServer(id) {
+    const blob = await uploadBlob();
+    if (id !== jobId) throw new Error('cancelled');
+    showProgress('Uploading…', 0, '');
+    const png = await serverCutout(blob, id);
+    if (id !== jobId) throw new Error('cancelled');
+    showProgress('Finishing…', null, 'Reading the result');
+
+    const bmp = await createImageBitmap(png);
+    // The server may have capped very large images; scale its alpha back up.
+    const c = document.createElement('canvas');
+    c.width = srcW; c.height = srcH;
+    const cx = c.getContext('2d', { willReadFrequently: true });
+    cx.imageSmoothingQuality = 'high';
+    cx.drawImage(bmp, 0, 0, srcW, srcH);
+    const d = cx.getImageData(0, 0, srcW, srcH).data;
+    const n = srcW * srcH;
+    const m = new Uint8Array(n);
+    for (let i = 0, p = 3; i < n; i++, p += 4) m[i] = d[p];
+    return m;
   }
 
   async function runWithDevice(lib, blob, model, device, id) {
@@ -215,6 +359,38 @@
   }
 
   const modelLabel = (m) => ({ small: 'Fast', medium: 'Balanced', large: 'Best' }[m] || m);
+  const MODEL_MB = { small: 44, medium: 88, large: 176 };
+
+  // True first-use cost = model + the ONNX runtime (bigger on the WebGPU path).
+  function downloadMB(model, gpu) {
+    return MODEL_MB[model] + (gpu ? 23 : 12);
+  }
+
+  // Ask before spending someone's mobile data. Resolves false if they decline.
+  function confirmDownload(model, gpu) {
+    if (okToDownload.has(model)) return Promise.resolve(true);
+    const mb = downloadMB(model, gpu);
+    const conn = navigator.connection || {};
+    const metered = !!conn.saveData || /^(slow-)?2g$/.test(conn.effectiveType || '');
+    confirmText.textContent = `One-time download: about ${mb} MB`;
+    confirmSub.textContent = `The ${modelLabel(model)} model runs on your device, so it has to be fetched once. `
+      + `You can pick a smaller model under “AI quality”.`;
+    saveDataWarn.classList.toggle('hidden', !metered);
+    confirmEl.classList.remove('hidden');
+    return new Promise((resolve) => {
+      const done = (ok) => {
+        confirmEl.classList.add('hidden');
+        confirmYes.removeEventListener('click', yes);
+        confirmNo.removeEventListener('click', no);
+        if (ok) okToDownload.add(model);
+        resolve(ok);
+      };
+      const yes = () => done(true);
+      const no = () => done(false);
+      confirmYes.addEventListener('click', yes);
+      confirmNo.addEventListener('click', no);
+    });
+  }
   const mb = (b) => (b / 1e6).toFixed(1);
   const nextPaint = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 30)));
 
@@ -485,6 +661,13 @@
   shrinkIn.addEventListener('input',  () => { shrinkVal.textContent = shrinkIn.value; scheduleRebuild(); });
   featherIn.addEventListener('input', () => { featherVal.textContent = featherIn.value; scheduleRebuild(); });
   modelSel.addEventListener('change', () => { if (srcData) runRemoval(); });
+  whereSeg.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn || busy) return;
+    where = btn.dataset.w;
+    applyWhereUI();
+    if (srcData) runRemoval();
+  });
   retryBtn.addEventListener('click', () => { attempt++; forceCpu = false; runRemoval(); });
 
   // Hold to compare with the original.
@@ -520,4 +703,6 @@
 
   // Initial UI state
   setOutMode('transparent');
+  applyWhereUI();
+  probeServer();
 })();

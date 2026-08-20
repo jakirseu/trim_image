@@ -1,8 +1,8 @@
 # ✂️ TrimImage
 
-Four image tools that run **entirely in your browser** — trim empty space, crop to any aspect ratio,
-remove a portrait's background with AI, or erase a colour into transparency. No uploads, no accounts,
-no server.
+Six image tools that run **entirely in your browser** — trim empty space, crop to any aspect ratio,
+auto-enhance colour and exposure, upscale with AI, remove a portrait's background, or erase a colour
+into transparency. No uploads, no accounts, no server.
 
 **Live at [imagetrimmer.com](https://imagetrimmer.com)**
 
@@ -36,6 +36,29 @@ Draw a selection and cut it out — pixel exact.
 - Rule-of-thirds guides, arrow-key nudging (Shift for 10 px), Esc to reset
 - Export as PNG, JPG or WEBP, or copy to clipboard
 
+### ✨ Enhance
+Auto-fix exposure and colour in one click, then fine-tune by hand.
+
+![Enhance](docs/screenshot-enhance.png)
+
+- **Auto-enhance** reads the histogram: stretches the 1–99% levels to full range and applies a
+  two-axis grey-world white balance (temperature *and* tint), then sets the sliders so you can tweak the result
+- 11 adjustments — exposure, brightness, contrast, highlights, shadows, saturation, vibrance,
+  temperature, tint, sharpen, vignette
+- Live **histogram**, hold-to-compare against the original, reset
+- Sliders drive a downscaled proxy for instant feedback; downloads re-run the same pipeline at full resolution
+
+### 🔍 Upscale
+AI super-resolution — enlarge 2×, 3× or 4× with sharper results than a plain resize.
+
+![Upscale](docs/screenshot-upscale.png)
+
+- ESRGAN/RDN model via UpscalerJS on TensorFlow.js, running on your GPU through WebGL
+- Model is only **~3 MB**, downloaded once and cached by the browser
+- Patch-by-patch with a live progress bar, and **cancellable** mid-run
+- **Hold to compare** against a plain high-quality resize at the same size
+- Guards against absurd output sizes, and warns before slow runs
+
 ### 🪄 Remove background
 AI portrait cutout, running locally on your device. Keep the result transparent or drop in a solid colour.
 
@@ -44,7 +67,8 @@ AI portrait cutout, running locally on your device. Keep the result transparent 
 - Segmentation with the **IS-Net** model via ONNX Runtime — **WebGPU** when available, WebAssembly otherwise, with automatic fallback
 - **Transparent** or **solid colour** background, with 10 presets (incl. passport blue) plus a custom colour picker
 - **Shrink edge** to remove leftover fringe from the old background, **feather edge** to blend into the new one
-- Three quality tiers (44 / 88 / 176 MB models) — the model downloads once and is cached by your browser
+- **Server or in-browser** — server mode needs no download (good on mobile data); in-browser mode uploads nothing
+- Three quality tiers (44 / 88 / 176 MB models) for the in-browser path, with a **consent prompt showing the exact size** before any download
 - **Hold to compare** against the original
 - Export as PNG, JPG or WEBP, or copy to clipboard
 
@@ -67,9 +91,20 @@ Click a colour to make it transparent, or wipe pixels away by hand with a round 
 
 ## Privacy
 
-Every tool processes pixels locally with the HTML canvas API. Nothing is uploaded, stored or tracked.
-The only network request any tool makes is the one-time download of the segmentation model used by
-**Remove background** — and that request only ever carries the model *to* your browser.
+**Trim, Crop, Enhance, Upscale and Erase colour never upload anything** — they process pixels locally
+with the canvas API, and the ~3 MB upscaling model runs on your device.
+
+**Remove background** lets the user choose, in the tool itself:
+
+- **On our server** (default when the API is deployed) — the photo is uploaded over HTTPS, the cutout is
+  computed, and the image is discarded as soon as the response is sent. Never written to disk, never
+  logged, and the response carries `Cache-Control: no-store`. This exists so people on mobile data don't
+  have to download a 44–176 MB model.
+- **In my browser** — nothing is uploaded. The model downloads once, with the size shown up front so the
+  user can decline, and everything runs locally.
+
+If the API isn't deployed, the UI detects that and silently uses the in-browser path. No accounts, no
+analytics, no tracking cookies, either way.
 
 ---
 
@@ -87,6 +122,16 @@ back to full resolution, then refined:
 - *Shrink* is a separable running-minimum erosion (van Herk / Gil-Werman), **O(1) per pixel** regardless of radius
 - *Feather* is two passes of a separable box blur, approximating a gaussian
 
+**Enhance** bakes every per-channel operation (exposure, highlights/shadows, contrast, brightness,
+temperature, tint) into three 256-entry lookup tables, so the hot loop is three array reads per pixel;
+only saturation/vibrance, vignette and the unsharp mask need real per-pixel work. *Auto-enhance* reads
+the luma histogram, stretches the 1–99% range to full scale, and solves the grey-world white balance
+across **both** colour axes — correcting only red/blue balances those two channels but leaves green
+behind, turning a blue cast into a magenta one.
+
+**Upscale** runs the model patch by patch with `awaitNextFrame`, which keeps the progress bar painting
+and the run cancellable instead of freezing the tab.
+
 **Erase colour** keeps an 8-bit alpha multiplier per pixel, so every operation is non-destructive and
 undoable — the source image is never modified. Colour erasing compares squared RGB distance against
 inner/outer thresholds derived from intensity and softness, with an early-out on the common case.
@@ -100,6 +145,8 @@ On a 12 MP (4000×3000) image:
 | Operation | Time |
 |---|---|
 | Colour erase, whole image | ~140 ms |
+| Enhance preview frame (1400 px proxy, all sliders) | ~51 ms |
+| Enhance full-res export (12 MP, incl. sharpen) | ~590 ms |
 | Flood fill (connected only) | ~125 ms |
 | Brush stroke | ~1 ms per pointer move |
 | Mask erode / feather | ~120 ms |
@@ -125,7 +172,15 @@ Opening `index.html` directly via `file://` mostly works, but the **Remove backg
 
 ## Deploying
 
-Any static host works — copy the files as they are. Two optional improvements:
+Any static host works — copy the files as they are; the app is fully functional without a backend.
+
+**Optional: the background-removal API.** Deploying [`server/`](server/README.md) lets phones skip the
+44–176 MB model download entirely — the browser uploads the photo, gets a cutout back, and refines the
+edges locally. It's plain FastAPI + onnxruntime (MIT) with the IS-Net weights (MIT), so **no AGPL code
+runs on your server**. Install steps, capacity numbers and the nginx block are in
+[`server/README.md`](server/README.md).
+
+Two more improvements:
 
 1. **Faster CPU inference.** Serve with these headers so ONNX Runtime can use multiple threads
    (without them it silently falls back to single-threaded):
@@ -147,6 +202,9 @@ Any static host works — copy the files as they are. Two optional improvements:
 | [`index.html`](index.html) | App shell, tab bar, and the three tool panels |
 | [`app.js`](app.js) | Tab switching + the Trim tool |
 | [`crop.js`](crop.js) | Crop selection, aspect ratios, rotate/flip |
+| [`enhance.js`](enhance.js) | Tone/colour adjustments, auto-enhance, histogram |
+| [`upscale.js`](upscale.js) | AI super-resolution (UpscalerJS + TensorFlow.js) |
+| [`server/`](server/) | Optional background-removal API (FastAPI + onnxruntime) — see its [README](server/README.md) |
 | [`bgremove.js`](bgremove.js) | AI background removal (model loading, mask refinement, compositing) |
 | [`eraser.js`](eraser.js) | Colour eraser, flood fill, brush, undo/redo |
 | [`styles.css`](styles.css) | All styling |
@@ -162,14 +220,16 @@ when the browser exposes it, and falls back to WebAssembly automatically. Clipbo
 
 ## Credits
 
-Full attribution lives on the [credits page](credits.html). The **Trim**, **Crop** and **Erase colour**
-tools use no third-party code; **Remove background** builds on:
+Full attribution lives on the [credits page](credits.html). **Trim**, **Crop**, **Enhance** and
+**Erase colour** use no third-party code. The two AI tools build on:
 
 | Component | Author | License |
 |---|---|---|
 | [@imgly/background-removal](https://github.com/imgly/background-removal-js) v1.7.0 | IMG.LY GmbH | AGPL-3.0 |
 | [IS-Net (DIS)](https://github.com/xuebinqin/DIS) segmentation model | Xuebin Qin et al. | MIT |
 | [ONNX Runtime Web](https://github.com/microsoft/onnxruntime) v1.21.0 | Microsoft | MIT |
+| [UpscalerJS](https://github.com/thekevinscott/UpscalerJS) v1.0.0 + its ESRGAN "medium" model | Kevin Scott | MIT |
+| [TensorFlow.js](https://github.com/tensorflow/tfjs) v4.11 | Google & contributors | Apache-2.0 |
 | [ndarray](https://github.com/scijs/ndarray) · [lodash-es](https://lodash.com/) · [zod](https://github.com/colinhacks/zod) | respective authors | MIT |
 
 The segmentation model comes from *Highly Accurate Dichotomous Image Segmentation* (Qin et al., ECCV 2022).
