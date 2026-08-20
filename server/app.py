@@ -24,7 +24,7 @@ from PIL import Image
 
 # ---------------------------------------------------------------- settings
 MODEL_DIR   = Path(os.getenv("TRIMIMAGE_MODEL_DIR", Path(__file__).parent / "models"))
-MODEL_FILE  = os.getenv("TRIMIMAGE_MODEL", "isnet_quint8.onnx")
+MODEL_FILE  = os.getenv("TRIMIMAGE_MODEL", "isnet_fp16.onnx")
 MAX_UPLOAD  = int(os.getenv("TRIMIMAGE_MAX_UPLOAD_MB", "12")) * 1024 * 1024
 MAX_EDGE    = int(os.getenv("TRIMIMAGE_MAX_EDGE", "4000"))   # cap the returned image
 MAX_JOBS    = int(os.getenv("TRIMIMAGE_MAX_CONCURRENCY", "2"))
@@ -54,7 +54,12 @@ def session() -> ort.InferenceSession:
     if _session is None:
         path = MODEL_DIR / MODEL_FILE
         if not path.exists():
-            raise RuntimeError(f"model missing: {path} — run fetch_model.py first")
+            # Fall back to whatever tier is actually present rather than 500ing.
+            spare = sorted(MODEL_DIR.glob("*.onnx")) if MODEL_DIR.exists() else []
+            if not spare:
+                raise RuntimeError(f"model missing: {path} — run fetch_model.py first")
+            path = spare[0]
+            print(f"warning: {MODEL_FILE} not found, using {path.name}", flush=True)
         opts = ort.SessionOptions()
         opts.intra_op_num_threads = int(os.getenv("TRIMIMAGE_THREADS", "0")) or os.cpu_count() or 2
         opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -101,10 +106,11 @@ def cutout_png(data: bytes) -> tuple[bytes, dict]:
 # ---------------------------------------------------------------- routes
 @app.get("/api/health")
 async def health():
-    path = MODEL_DIR / MODEL_FILE
+    present = sorted(p.name for p in MODEL_DIR.glob("*.onnx")) if MODEL_DIR.exists() else []
     return {
-        "status": "ok" if path.exists() else "model-missing",
-        "model": MODEL_FILE,
+        "status": "ok" if present else "model-missing",
+        "model": MODEL_FILE if MODEL_FILE in present else (present[0] if present else None),
+        "available": present,
         "loaded": _session is not None,
         "maxUploadMB": MAX_UPLOAD // (1024 * 1024),
         "maxEdge": MAX_EDGE,

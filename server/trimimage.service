@@ -9,7 +9,7 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/var/www/imagetrimmer/server
-Environment="TRIMIMAGE_MODEL=isnet_quint8.onnx"
+Environment="TRIMIMAGE_MODEL=isnet_fp16.onnx"
 Environment="TRIMIMAGE_MAX_UPLOAD_MB=12"
 Environment="TRIMIMAGE_MAX_EDGE=4000"
 # Keep these at or below the number of CPU cores — inference is CPU-bound.

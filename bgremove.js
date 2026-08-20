@@ -253,6 +253,10 @@
     whereHint.textContent = where === 'server'
       ? 'Processed on our server — instant on phones, nothing to download. Your photo is sent there, processed, and discarded immediately.'
       : 'Processed entirely on this device — your photo never leaves it. Needs a one-time model download.';
+    // The quality picker only affects the in-browser model, so hide it (and its
+    // talk of megabyte downloads) when the server is doing the work.
+    const modelField = modelSel.closest('.field');
+    if (modelField) modelField.classList.toggle('hidden', where === 'server');
   }
 
   // Shrink oversized photos before upload so we stay inside the server's limit.

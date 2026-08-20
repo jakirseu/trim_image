@@ -10,7 +10,9 @@ Everything lives in one folder on the server: **`/var/www/imagetrimmer`**.
 The site works without the API. It checks `/api/health` once on load; if nothing
 answers, it hides the server option and runs background removal in the browser.
 
-Assumes Ubuntu with nginx, domain on Cloudflare.
+Assumes Ubuntu with nginx, domain on Cloudflare. Cloud images log you in as a
+non-root user (`ubuntu`), so the privileged commands below use `sudo` — if you are
+root already, drop it.
 
 ---
 
@@ -40,9 +42,13 @@ Ubuntu 23.04+ marks the system Python as externally managed, so pip needs
 `--break-system-packages` — without it you get `error: externally-managed-environment`.
 
 ```bash
-apt update && apt install -y python3-pip
-pip3 install --break-system-packages -r /var/www/imagetrimmer/server/requirements.txt
+sudo apt update && sudo apt install -y python3-pip
+sudo pip3 install --break-system-packages -r /var/www/imagetrimmer/server/requirements.txt
 ```
+
+Both need `sudo`: the first writes to the dpkg lock, the second installs into the
+system `dist-packages`. Without it you get `are you root?` from apt, and then
+`No module named uvicorn` later on, because nothing was installed.
 
 About 200 MB installed, mostly `onnxruntime`. Check space first with `df -h`.
 
@@ -50,12 +56,18 @@ About 200 MB installed, mostly `onnxruntime`. Check space first with `df -h`.
 
 ```bash
 cd /var/www/imagetrimmer
-python3 server/fetch_model.py small
+python3 server/fetch_model.py medium
 ls -lh server/models/
 ```
 
-Downloads 44 MB once and assembles it into `server/models/isnet_quint8.onnx`.
+Downloads 88 MB once and assembles it into `server/models/isnet_fp16.onnx`.
 It's git-ignored, so deploys never touch it.
+
+`medium` is the right default on a server: measured against `small`, it runs at the
+same speed (4.5 s vs 4.6 s on two threads), uses *less* memory (1.2 GB vs 1.4 GB peak)
+and produces visibly cleaner edges — `small` is quantised for browser download size,
+which stops mattering once the model lives on your machine. Use `small` only if disk
+is tight.
 
 ### 2.3 Check it runs
 
@@ -72,15 +84,15 @@ If it says `model-missing`, step 2.2 didn't land in `server/models/`.
 ### 2.4 Run it as a service
 
 ```bash
-cp /var/www/imagetrimmer/server/trimimage.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now trimimage
-systemctl status trimimage --no-pager
+sudo cp /var/www/imagetrimmer/server/trimimage.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now trimimage
+sudo systemctl status trimimage --no-pager
 ```
 
 The unit file matches these paths already — nothing to edit unless your VPS has more
 than 2 cores, in which case raise `TRIMIMAGE_MAX_CONCURRENCY` and `TRIMIMAGE_THREADS`
-to match, then `systemctl daemon-reload && systemctl restart trimimage`.
+to match, then `sudo systemctl daemon-reload && sudo systemctl restart trimimage`.
 
 ### 2.5 Point nginx at it
 
@@ -109,7 +121,7 @@ the site, above `location / { ... }`:
 ```
 
 ```bash
-nginx -t && systemctl reload nginx
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
 `client_max_body_size` matters: without it nginx caps uploads at 1 MB and every photo
@@ -132,7 +144,7 @@ with *On our server* selected, and produce a cutout with no model download.
 
 ```bash
 cd /var/www/imagetrimmer && git pull
-systemctl restart trimimage       # only if anything under server/ changed
+sudo systemctl restart trimimage   # only if anything under server/ changed
 ```
 
 Static-only changes need no restart.
@@ -140,8 +152,8 @@ Static-only changes need no restart.
 ## Operating it
 
 ```bash
-journalctl -u trimimage -f          # follow the logs
-systemctl restart trimimage
+sudo journalctl -u trimimage -f     # follow the logs
+sudo systemctl restart trimimage
 curl -s localhost:8000/api/health
 ```
 
@@ -155,7 +167,7 @@ then gets a 503 rather than thrashing the box.
 cd /var/www/imagetrimmer && python3 server/fetch_model.py medium
 # then in /etc/systemd/system/trimimage.service:
 #   Environment="TRIMIMAGE_MODEL=isnet_fp16.onnx"
-systemctl daemon-reload && systemctl restart trimimage
+sudo systemctl daemon-reload && sudo systemctl restart trimimage
 ```
 
 **Cloudflare:** keep SSL/TLS mode on **Full (strict)**.
@@ -177,7 +189,7 @@ COEP blocks cross-origin resources that don't opt in.
 ## Rollback
 
 ```bash
-systemctl stop trimimage && systemctl disable trimimage
+sudo systemctl stop trimimage && sudo systemctl disable trimimage
 ```
 
 The site detects `/api/health` failing and reverts to in-browser processing on its own.

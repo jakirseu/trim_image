@@ -25,14 +25,14 @@ Everything lives in `/var/www/imagetrimmer/server`, using the system Python — 
 virtualenv. Full walkthrough in [DEPLOY.md](../DEPLOY.md); the short version:
 
 ```bash
-apt install -y python3-pip
-pip3 install --break-system-packages -r /var/www/imagetrimmer/server/requirements.txt
+sudo apt install -y python3-pip
+sudo pip3 install --break-system-packages -r /var/www/imagetrimmer/server/requirements.txt
 
 cd /var/www/imagetrimmer
-python3 server/fetch_model.py small          # 44 MB, fetched once
+python3 server/fetch_model.py medium         # 88 MB, fetched once
 
-cp server/trimimage.service /etc/systemd/system/
-systemctl daemon-reload && systemctl enable --now trimimage
+sudo cp server/trimimage.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now trimimage
 curl -s localhost:8000/api/health
 ```
 
@@ -46,11 +46,12 @@ Then add the `/api/` proxy block to nginx — see `nginx.conf.example`, and keep
 
 | Tier | File | Size | Notes |
 |---|---|---|---|
-| `small` | `isnet_quint8.onnx` | 44 MB | quantised — fastest, the sensible default |
-| `medium` | `isnet_fp16.onnx` | 88 MB | half precision |
-| `large` | `isnet.onnx` | 176 MB | full precision, slowest |
+| `small` | `isnet_quint8.onnx` | 44 MB | quantised for browser download size; noisier edges on CPU |
+| `medium` | `isnet_fp16.onnx` | 88 MB | **the default** — same speed as `small`, less memory, cleaner edges |
+| `large` | `isnet.onnx` | 176 MB | full precision, slower for a small gain |
 
-Switch with `TRIMIMAGE_MODEL=isnet_fp16.onnx` in the unit file after fetching it.
+Switch with `TRIMIMAGE_MODEL=...` in the unit file after fetching the tier you want.
+If that file is absent the service uses whichever tier is present and logs a warning.
 
 ## Configuration
 
