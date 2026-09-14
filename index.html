@@ -90,8 +90,14 @@
             <canvas id="canvas"></canvas>
           </div>
           <div class="legend">
-            <span class="swatch detected"></span> detected background
-            <span class="swatch keep"></span> kept region
+            <div class="seg seg-sm" id="trimView">
+              <button data-view="overlay" class="active" type="button">Overlay</button>
+              <button data-view="result" type="button">Trimmed result</button>
+            </div>
+            <span id="trimLegendKeys">
+              <span class="swatch detected"></span> detected background
+              <span class="swatch keep"></span> kept region
+            </span>
           </div>
         </div>
 
@@ -470,6 +476,10 @@
             </div>
           </div>
           <div class="legend">
+            <div class="seg seg-sm" id="crView">
+              <button data-view="overlay" class="active" type="button">Overlay</button>
+              <button data-view="result" type="button">Cropped result</button>
+            </div>
             <span class="muted" id="crHint">Drag on the image to draw a selection · arrow keys nudge · Esc resets</span>
           </div>
         </div>
@@ -751,6 +761,12 @@
               <button id="cvAddMore" class="btn btn-ghost btn-sm" type="button">+ Add images</button>
             </div>
             <div class="dims" id="cvSummary"></div>
+          </div>
+          <div class="stage cv-stage" id="cvPreviewStage">
+            <canvas id="cvPreview"></canvas>
+          </div>
+          <div class="legend">
+            <span class="muted" id="cvPreviewNote">Select a file to preview it.</span>
           </div>
           <div class="file-list" id="cvList"></div>
           <div class="legend"><span class="muted">Drop more images anywhere on this panel.</span></div>

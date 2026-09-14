@@ -749,3 +749,37 @@ select:disabled { opacity: .6; }
 #cpCompareBtn.armed { border-color: var(--accent); color: var(--accent); }
 #cpCompareBtn { user-select: none; -webkit-user-select: none; touch-action: none; }
 .dimmed { opacity: .45; pointer-events: none; }
+
+
+/* ---- Result preview ------------------------------------------------------
+   Trim and Crop show an adjustment overlay while you aim; the view toggle
+   swaps the canvas for the image you are actually going to get. Convert has
+   no overlay to aim with, so it previews the selected file directly. */
+.cv-stage {
+  min-height: 200px;
+  max-height: 46vh;
+  padding: 10px;
+}
+#cvPreview {
+  max-width: 100%;
+  max-height: 44vh;
+  display: block;
+  object-fit: contain;
+}
+#cvPreview:not([data-ready]) { display: none; }
+
+/* The file rows become a selector once there is something to preview. */
+.file-row { cursor: pointer; }
+.file-row.selected {
+  border-color: var(--accent);
+  background: rgba(91, 140, 255, .12);
+}
+.file-row .file-actions { cursor: default; }
+
+/* The view toggle sits in the legend row, where it has room to be explicit —
+   "Trimmed result" reads better than "Result" and should stay on one line. */
+.legend .seg button { white-space: nowrap; }
+
+/* In result mode there is nothing to drag, so drop the crosshair. */
+.crop-wrap.showing-result { cursor: default; }
+.crop-wrap.showing-result .crop-sel { display: none; }

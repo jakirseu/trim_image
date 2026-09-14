@@ -57,6 +57,9 @@
   const downloadBtn = $('downloadBtn');
   const copyBtn     = $('copyBtn');
 
+  const trimViewSeg    = $('trimView');
+  const trimLegendKeys = $('trimLegendKeys');
+
   // ---- State ----
   let sourceImg = null;          // HTMLImageElement (or canvas) of the loaded image
   let srcData = null;            // ImageData of the full source
@@ -65,6 +68,7 @@
   let crop = null;               // { x, y, w, h }
   let eyedropperArmed = false;
   let lastFileName = 'trimmed';
+  let viewMode = 'overlay';      // 'overlay' = aim at it, 'result' = see what you get
 
   // ============================================================
   // Loading images
@@ -206,17 +210,12 @@
   function recompute() {
     if (!srcData) return;
     crop = computeCrop();
+    updateStats();
+    paint();
+  }
 
-    // Draw full source on the canvas, then dim the area being trimmed away.
-    canvas.width = srcW;
-    canvas.height = srcH;
-    ctx.clearRect(0, 0, srcW, srcH);
-    ctx.drawImage(sourceImg, 0, 0);
-
+  function updateStats() {
     if (!crop) {
-      // Nothing to keep.
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
-      ctx.fillRect(0, 0, srcW, srcH);
       newDims.textContent = '—';
       savedPct.textContent = '—';
       dimsLabel.textContent = `${srcW} × ${srcH}`;
@@ -226,28 +225,10 @@
       downloadBtn.style.opacity = copyBtn.style.opacity = .5;
       return;
     }
-
     warnEmpty.textContent = '';
     downloadBtn.disabled = false;
     copyBtn.disabled = false;
     downloadBtn.style.opacity = copyBtn.style.opacity = 1;
-
-    // Dim trimmed-away region (everything outside crop).
-    ctx.save();
-    ctx.fillStyle = 'rgba(15, 17, 21, 0.62)';
-    // top band
-    ctx.fillRect(0, 0, srcW, crop.y);
-    // bottom band
-    ctx.fillRect(0, crop.y + crop.h, srcW, srcH - (crop.y + crop.h));
-    // left band
-    ctx.fillRect(0, crop.y, crop.x, crop.h);
-    // right band
-    ctx.fillRect(crop.x + crop.w, crop.y, srcW - (crop.x + crop.w), crop.h);
-    // keep-region outline
-    ctx.strokeStyle = '#34d399';
-    ctx.lineWidth = Math.max(1, Math.round(Math.min(srcW, srcH) / 400));
-    ctx.strokeRect(crop.x + 0.5, crop.y + 0.5, crop.w - 1, crop.h - 1);
-    ctx.restore();
 
     const origPx = srcW * srcH;
     const newPx = crop.w * crop.h;
@@ -255,6 +236,52 @@
     newDims.textContent = `${crop.w} × ${crop.h}`;
     savedPct.textContent = `${removed}% area`;
     dimsLabel.textContent = `${srcW} × ${srcH}  →  ${crop.w} × ${crop.h}`;
+  }
+
+  // Either the adjustment overlay, or the exact pixels the download will contain.
+  function paint() {
+    const showResult = viewMode === 'result' && !!crop;
+    trimLegendKeys.classList.toggle('hidden', showResult);
+
+    if (showResult) {
+      canvas.width = crop.w;
+      canvas.height = crop.h;
+      ctx.clearRect(0, 0, crop.w, crop.h);
+      ctx.drawImage(sourceImg, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+      return;
+    }
+
+    canvas.width = srcW;
+    canvas.height = srcH;
+    ctx.clearRect(0, 0, srcW, srcH);
+    ctx.drawImage(sourceImg, 0, 0);
+
+    if (!crop) {
+      // Nothing to keep — flag the whole frame rather than showing an empty crop.
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+      ctx.fillRect(0, 0, srcW, srcH);
+      return;
+    }
+
+    // Dim the region being trimmed away.
+    ctx.save();
+    ctx.fillStyle = 'rgba(15, 17, 21, 0.62)';
+    ctx.fillRect(0, 0, srcW, crop.y);
+    ctx.fillRect(0, crop.y + crop.h, srcW, srcH - (crop.y + crop.h));
+    ctx.fillRect(0, crop.y, crop.x, crop.h);
+    ctx.fillRect(crop.x + crop.w, crop.y, srcW - (crop.x + crop.w), crop.h);
+    // Outline what survives.
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = Math.max(1, Math.round(Math.min(srcW, srcH) / 400));
+    ctx.strokeRect(crop.x + 0.5, crop.y + 0.5, crop.w - 1, crop.h - 1);
+    ctx.restore();
+  }
+
+  function disarmEyedropper() {
+    eyedropperArmed = false;
+    pickFromImage.classList.remove('armed');
+    stage.classList.remove('eyedropper');
+    pickHint.textContent = '';
   }
 
   // Produce the final trimmed canvas (no overlay).
@@ -393,23 +420,29 @@
   });
 
   canvas.addEventListener('click', (e) => {
-    if (!eyedropperArmed || !srcData) return;
+    if (!eyedropperArmed || !srcData || viewMode === 'result') return;
     const rect = canvas.getBoundingClientRect();
     const x = Math.floor((e.clientX - rect.left) / rect.width * srcW);
     const y = Math.floor((e.clientY - rect.top) / rect.height * srcH);
     const i = (Math.min(srcH-1,Math.max(0,y)) * srcW + Math.min(srcW-1,Math.max(0,x))) * 4;
     const d = srcData.data;
     bgColorInput.value = rgbToHex(d[i], d[i+1], d[i+2]);
-    eyedropperArmed = false;
-    pickFromImage.classList.remove('armed');
-    stage.classList.remove('eyedropper');
-    pickHint.textContent = '';
+    disarmEyedropper();
     recompute();
   });
 
   // Sliders (live).
   tolerance.addEventListener('input', () => { tolVal.textContent = tolerance.value; recompute(); });
   padding.addEventListener('input', () => { padVal.textContent = padding.value; recompute(); });
+
+  trimViewSeg.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    viewMode = btn.dataset.view;
+    [...trimViewSeg.children].forEach((b) => b.classList.toggle('active', b === btn));
+    if (viewMode === 'result' && eyedropperArmed) disarmEyedropper();
+    paint();
+  });
 
   downloadBtn.addEventListener('click', download);
   copyBtn.addEventListener('click', copyToClipboard);

@@ -24,6 +24,8 @@ Crops away the uniform border around an image — the equivalent of Photoshop's 
 - **Tolerance** slider for noisy or JPEG-compressed edges
 - **Padding** to keep a margin around the result
 - Live preview of the crop, with original/trimmed/removed stats
+- **Overlay / Trimmed result** toggle — aim with the overlay, then see the exact image the
+  download will contain before committing to it
 - Export as PNG, JPG or WEBP, or copy to clipboard
 
 ### ⛶ Crop
@@ -34,6 +36,7 @@ Draw a selection and cut it out — pixel exact.
 - **Numeric W/H/X/Y inputs** for exact values, plus *Select all* and *Center 80%*
 - **Rotate** 90° either way and **flip** horizontally or vertically
 - Rule-of-thirds guides, arrow-key nudging (Shift for 10 px), Esc to reset
+- **Overlay / Cropped result** toggle — check the finished crop without leaving the tool
 - Export as PNG, JPG or WEBP, or copy to clipboard
 
 ### ✨ Enhance
@@ -95,6 +98,8 @@ Change format between PNG, JPG and WEBP — several images at once.
 - **Batch**: drop as many images as you like, convert them all, download individually or in one go
 - Output formats are **probed at runtime**, so a format only appears if your browser can really encode it
 - Quality slider for lossy formats, and a matte colour for transparency heading into JPG
+- **Preview of the selected file, decoded from the bytes that would be saved** — so JPEG
+  artefacts and the matte behind former transparency are visible before you download
 - Per-file before/after sizes and a running total
 
 ### 🗜️ Compress

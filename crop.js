@@ -30,6 +30,7 @@
   const formatSel = $('crFormat');
   const downloadBtn = $('crDownloadBtn'), copyBtn = $('crCopyBtn');
   const rotL = $('crRotL'), rotR = $('crRotR'), flipH = $('crFlipH'), flipV = $('crFlipV');
+  const viewSeg = $('crView');
 
   const MIN = 8;                     // smallest selection, in image pixels
 
@@ -41,6 +42,7 @@
   let ratio = null;                  // null = free
   let drag = null;                   // { mode, handle, startSel, startX, startY }
   let lastFileName = 'image';
+  let viewMode = 'overlay';          // 'overlay' = aim at it, 'result' = see what you get
 
   const isActive = () => document.body.dataset.tab === 'crop';
   const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
@@ -72,11 +74,26 @@
   // Adopt a canvas as the working source and repaint.
   function setSource(c) {
     src = c; W = c.width; H = c.height;
-    canvas.width = W; canvas.height = H;
-    ctx.clearRect(0, 0, W, H);
-    ctx.drawImage(c, 0, 0);
+    paint();
     dimsLabel.textContent = `${W} × ${H}`;
     srcDims.textContent = `${W} × ${H}`;
+  }
+
+  // Either the whole image under the selection overlay, or just the selection —
+  // the exact pixels the download will contain.
+  function paint() {
+    if (!src) return;
+    const showResult = viewMode === 'result';
+    wrap.classList.toggle('showing-result', showResult);
+    if (showResult) {
+      canvas.width = sel.w; canvas.height = sel.h;
+      ctx.clearRect(0, 0, sel.w, sel.h);
+      ctx.drawImage(src, sel.x, sel.y, sel.w, sel.h, 0, 0, sel.w, sel.h);
+    } else {
+      canvas.width = W; canvas.height = H;
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(src, 0, 0);
+    }
   }
 
   // ============================================================
@@ -129,6 +146,7 @@
     outDims.textContent = `${sel.w} × ${sel.h}`;
     const pct = (sel.w * sel.h) / (W * H) * 100;
     keptEl.textContent = `${pct.toFixed(0)}% area`;
+    if (viewMode === 'result') paint();
   }
 
   // ============================================================
@@ -143,7 +161,7 @@
   }
 
   wrap.addEventListener('pointerdown', (e) => {
-    if (!src) return;
+    if (!src || viewMode === 'result') return;
     const handle = e.target.dataset ? e.target.dataset.h : null;
     const p = toImage(e);
     e.preventDefault();
@@ -158,6 +176,17 @@
       drag = { mode: 'draw', start: { x: p.x, y: p.y, w: 0, h: 0 }, px: p.x, py: p.y };
       setSel({ x: p.x, y: p.y, w: MIN, h: MIN });
     }
+  });
+
+  viewSeg.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    viewMode = btn.dataset.view;
+    [...viewSeg.children].forEach((b) => b.classList.toggle('active', b === btn));
+    hintEl.textContent = viewMode === 'result'
+      ? 'Showing the cropped result — switch back to Overlay to adjust it.'
+      : 'Drag on the image to draw a selection · arrow keys nudge · Esc resets';
+    paint();
   });
 
   wrap.addEventListener('pointermove', (e) => {

@@ -23,10 +23,15 @@
   const matteIn    = $('cvMatte');
   const downloadAll= $('cvDownloadAll');
   const addMoreBtn = $('cvAddMore');
+  const previewCv  = $('cvPreview');
+  const previewCtx = previewCv.getContext('2d');
+  const previewNote= $('cvPreviewNote');
 
   let items = [];          // { file, name, bitmap, w, h, hasAlpha, blob, busy }
   let format = 'image/jpeg';
   let rerunTimer = 0;
+  let selected = null;     // the item currently in the preview
+  let previewToken = 0;    // guards against a slow decode landing after a newer one
 
   const isActive = () => document.body.dataset.tab === 'convert';
   const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/avif': 'avif' };
@@ -112,6 +117,47 @@
     return c;
   }
 
+  // Draws the bytes we would write, decoded back — so JPEG artefacts and the
+  // matte behind former transparency are visible before anything is saved.
+  async function renderPreview() {
+    const previous = selected;
+    if (!selected || !items.includes(selected)) selected = items.find((i) => i.blob) || items[0] || null;
+    if (selected !== previous) render();      // move the row highlight
+    if (!selected || !selected.blob) {
+      previewCv.removeAttribute('data-ready');
+      previewNote.textContent = items.length ? 'Converting…' : 'Select a file to preview it.';
+      return;
+    }
+    const token = ++previewToken;
+    const item = selected;
+    let bmp;
+    try {
+      bmp = await createImageBitmap(item.blob);
+    } catch {
+      previewCv.removeAttribute('data-ready');
+      previewNote.textContent = 'This browser could not decode the converted file for preview.';
+      return;
+    }
+    if (token !== previewToken) { bmp.close?.(); return; }
+    // Read the dimensions before closing — close() zeroes them.
+    const bw = bmp.width, bh = bmp.height;
+    previewCv.width = bw;
+    previewCv.height = bh;
+    previewCtx.clearRect(0, 0, bw, bh);
+    previewCtx.drawImage(bmp, 0, 0);
+    bmp.close?.();
+    previewCv.setAttribute('data-ready', '');
+    previewNote.textContent =
+      `${item.name}.${EXT[format] || 'img'} · ${bw} × ${bh} · ${kb(item.blob.size)}`
+      + ' — decoded from the file that would be saved';
+  }
+
+  function select(item) {
+    selected = item;
+    render();
+    renderPreview();
+  }
+
   async function convertOne(item) {
     if (!item.bitmap) return;
     item.busy = true; render();
@@ -123,8 +169,12 @@
   }
 
   async function convertAll() {
-    for (const item of items) await convertOne(item);
+    for (const item of items) {
+      await convertOne(item);
+      if (item === selected) renderPreview();
+    }
     renderSummary();
+    renderPreview();
   }
 
   function scheduleConvert() {
@@ -139,7 +189,11 @@
     listEl.innerHTML = '';
     items.forEach((item, i) => {
       const row = document.createElement('div');
-      row.className = 'file-row';
+      row.className = 'file-row' + (item === selected ? ' selected' : '');
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('.file-actions')) return;   // the row's own buttons
+        select(item);
+      });
       const delta = item.blob
         ? ((item.blob.size - item.srcSize) / item.srcSize) * 100
         : null;
@@ -172,7 +226,11 @@
       rm.className = 'btn btn-ghost btn-sm';
       rm.textContent = '✕';
       rm.title = 'Remove';
-      rm.addEventListener('click', () => { items.splice(i, 1); render(); renderSummary(); applyFormatUI(); });
+      rm.addEventListener('click', () => {
+        items.splice(i, 1);
+        if (item === selected) selected = items[0] || null;
+        render(); renderSummary(); applyFormatUI(); renderPreview();
+      });
       actions.appendChild(rm);
       listEl.appendChild(row);
     });
@@ -247,6 +305,8 @@
   downloadAll.addEventListener('click', saveAll);
   resetBtn.addEventListener('click', () => {
     items = [];
+    selected = null;
+    previewCv.removeAttribute('data-ready');
     editor.classList.add('hidden');
     dropzone.classList.remove('hidden');
     render(); renderSummary();
